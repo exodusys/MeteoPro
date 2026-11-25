@@ -17,7 +17,7 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
 html{background:var(--bg2)}
-#sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
+#sky{transform:translateZ(0);-webkit-transform:translateZ(0);position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
 body.night{--bg1:#05070f;--bg2:#1b2245}
@@ -71,7 +71,8 @@ canvas{width:100%;display:block}
 .wi{width:1em;height:1em;vertical-align:-.14em;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
 .chip .wi{width:1.55em;height:1.55em;vertical-align:-.42em;margin:-5px 3px -5px 0}
 .ct svg.ci{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-#fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
+#fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none;transform:translateZ(0);-webkit-transform:translateZ(0)}
+#lvh{position:fixed;left:0;top:0;width:1px;height:100vh;height:100lvh;visibility:hidden;pointer-events:none}
 .fxon .hero{padding:34px 0 64px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl{text-shadow:0 1px 14px rgba(0,0,0,.22)}
 html.daytxt{--txt:#0b1220;--mut:rgba(11,18,32,.7);--acc:#0a5fb0;--onacc:#fff}
 html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5ec8ff}
@@ -135,7 +136,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 </style>
 </head>
 <body class="sunny nofade">
-<div id="sky"></div>
+<div id="sky"></div><div id="lvh"></div>
 <canvas id="fx"></canvas>
 <div class="app">
 
@@ -426,7 +427,7 @@ function quick(E){
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
- cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
+ cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none;transform:translateZ(0);-webkit-transform:translateZ(0)";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
  let fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
@@ -481,7 +482,7 @@ const FX=(()=>{
   if(st.c!="storm")nextBolt=0;
  }
  function resize(){
-  const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
+  const w=innerWidth,h=Math.max(innerHeight,document.getElementById("lvh").offsetHeight||0);if(w==W&&h==H)return;
   // iPhone : la barre Safari qui se replie en défilant change seulement la hauteur → on garde l'animation en place
   if(W&&w==W&&Math.abs(h-H)<240){if(h>H){H=h;cv.height=cv2.height=Math.round(H*dpr);cv.style.height=cv2.style.height=H+"px"}return}
   W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv.style.width=cv2.style.width=W+"px";cv.style.height=cv2.style.height=H+"px";
