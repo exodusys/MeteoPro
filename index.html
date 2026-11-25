@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#0b1a3a">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Météo Pro</title>
 <script>try{var _s=JSON.parse(localStorage.getItem("meteoPro")||"{}"),_t=_s.theme||"auto";document.documentElement.dataset.theme=_t=="auto"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):_t}catch(e){}</script>
@@ -14,9 +15,10 @@
 :root{--bg1:#0b1a3a;--bg2:#1d3f7a;--card:rgba(255,255,255,.17);--line:rgba(255,255,255,.28);--txt:#fff;--mut:rgba(255,255,255,.72);--acc:#5ec8ff;--onacc:#002;--track:rgba(255,255,255,.18);--track2:rgba(255,255,255,.26);--seg:rgba(0,0,0,.26);--segon:rgba(255,255,255,.24);--city1:rgba(255,255,255,.22);--city2:rgba(255,255,255,.1);--nav:rgb(10,18,40);--toastbg:#fff;--toastfg:#002;--grid:rgba(255,255,255,.08);color-scheme:dark}
 html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);--line:rgba(11,26,58,.1);--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9;--onacc:#fff;--track:rgba(11,26,58,.12);--track2:rgba(11,26,58,.18);--seg:rgba(11,26,58,.08);--segon:rgba(255,255,255,.9);--city1:rgba(255,255,255,.85);--city2:rgba(255,255,255,.45);--nav:rgba(255,255,255,.78);--toastbg:#0b1a3a;--toastfg:#fff;--grid:rgba(11,26,58,.08);color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;background:linear-gradient(170deg,var(--bg1),var(--bg2));transition:--bg1 25s linear,--bg2 25s linear;overflow-x:hidden;background-attachment:fixed}
+body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
+html{background:var(--bg2)}
+#sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
-body.quick{transition:--bg1 .8s ease,--bg2 .8s ease!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
 body.night{--bg1:#05070f;--bg2:#1b2245}
 body.rain{--bg1:#1c2733;--bg2:#3d5166}
@@ -133,6 +135,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 </style>
 </head>
 <body class="sunny nofade">
+<div id="sky"></div>
 <canvas id="fx"></canvas>
 <div class="app">
 
@@ -327,6 +330,15 @@ function moonInfo(ts,lat,lon){
  if(alt>=0)alt+=.0002967/Math.tan(alt+.00312536/(alt+.08901179));
  return{az,alt,para,ang,frac:(1+Math.cos(inc))/2,ph:.5+.5*inc*(ang<0?-1:1)/Math.PI};
 }
+// date exacte des pleines lunes (phase = 0,5) autour de maintenant
+function fullMoon(now,dir,lat,lon){
+ const g=t=>moonInfo(t,lat,lon).ph-.5;   // passe de <0 à >0 à la pleine lune (le saut à la nouvelle lune est descendant)
+ let a=now,pv=g(a);
+ for(let k=1;k<=800;k++){const b=now+dir*k*36e5,v=g(b);
+  if(dir>0?(pv<0&&v>=0):(v<0&&pv>=0)){let lo=Math.min(a,b),hi=Math.max(a,b);for(let i=0;i<20;i++){const m=(lo+hi)/2;(g(m)>=0)==(g(hi)>=0)?hi=m:lo=m}return(lo+hi)/2}
+  a=b;pv=v}
+ return null;
+}
 // secours si l'API lever/coucher est indisponible
 function sunCalc(C){
  const R=Math.PI/180,pp=parts(Date.now(),C.tz),n=Math.round(Date.UTC(pp.y,pp.mo-1,pp.d,12)/864e5+2440587.5-C.lon/360-2451545),Js=n-C.lon/360,
@@ -470,7 +482,9 @@ const FX=(()=>{
  }
  function resize(){
   const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;
+  // iPhone : la barre Safari qui se replie en défilant change seulement la hauteur → on garde l'animation en place
+  if(W&&w==W&&Math.abs(h-H)<240){if(h>H){H=h;cv.height=cv2.height=Math.round(H*dpr);cv.style.height=cv2.style.height=H+"px"}return}
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv.style.width=cv2.style.width=W+"px";cv.style.height=cv2.style.height=H+"px";
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -587,7 +601,7 @@ const FX=(()=>{
  }
  function rainI(){if(!WETC.includes(st.c))return 0;let I=Math.sqrt(Math.max(0,st.mm)/8);I=Math.min(1,Math.max(I,{rain:.1,shower:.18,storm:.55,sleet:.12}[st.c]));return st.c=="sleet"?I*.6:I}
  function snowI(){if(st.c=="snow")return Math.min(1,Math.max(Math.sqrt(Math.max(0,st.mm)/3),.12));return st.c=="sleet"?.4:0}
- function measureFloor(t){if(t-fmT<.1)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}if(r.top>24&&r.top<H){floorY=r.top+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
+ function measureFloor(t){if(t-fmT<.016)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}if(r.top>24&&r.top<H){floorY=r.top+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
  const dotS=(()=>{const c=off(32,32),g=c.getContext("2d"),gr=g.createRadialGradient(16,16,0,16,16,16);gr.addColorStop(0,"rgba(236,243,252,1)");gr.addColorStop(.45,"rgba(226,236,250,.75)");gr.addColorStop(1,"rgba(226,236,250,0)");g.fillStyle=gr;g.fillRect(0,0,32,32);return c})();
  let splAcc=0;
  function drawSplash(dt,I){
@@ -756,7 +770,7 @@ const FX=(()=>{
   _acc(v){acc=v},fast(ms){fastUntil=performance.now()+ms},
   pause(){run=false},
   stop(){run=false;cv.style.display="none";cv2.style.display="none"},
-  resize(){if(W||run){W=0;resize()}},
+  resize(){if(W||run)resize()},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
  };
 })();
@@ -851,12 +865,34 @@ function skyColors(dk,c,cl,th){
 }
 let SKYS=null;
 const rgbs=c=>"rgb("+c.map(Math.round).join(",")+")";
+const skyEl=document.getElementById("sky"),tcm=document.querySelector('meta[name="theme-color"]');
+let skyFast=false,lastDyn,skyCur=null,skyFrom=null,skyTo=null,skyT0=0,skyDur=0,skyTm=0;
+const hex2=h=>{h=(h||"").trim();if(/^rgb/i.test(h))return h.match(/[\d.]+/g).slice(0,3).map(Number);h=h.replace("#","");if(h.length==3)h=h.split("").map(x=>x+x).join("");return[0,2,4].map(i=>parseInt(h.substr(i,2),16)||0)};
+function skyDefault(){const cs=getComputedStyle(document.documentElement);return[hex2(cs.getPropertyValue("--bg1")),hex2(cs.getPropertyValue("--bg2"))]}
+function skyPaint(){
+ const a=skyCur.slice(0,3),c=skyCur.slice(3);
+ skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
+}
+function skyTick(){
+ const k=skyDur<=0?1:Math.min(1,(Date.now()-skyT0)/skyDur);
+ skyCur=skyFrom.map((v,i)=>v+(skyTo[i]-v)*k);skyPaint();
+ if(k>=1){clearInterval(skyTm);skyTm=0}
+}
+function skySet(a,c){
+ const to=[...a,...c];
+ if(skyTo&&to.every((v,i)=>Math.abs(v-skyTo[i])<.5))return;
+ const b=document.body,snap=!skyCur||b.classList.contains("nofade");
+ skyFrom=skyCur?skyCur.slice():to.slice();skyTo=to;skyT0=Date.now();skyDur=snap?0:(b.classList.contains("quick")||skyFast?800:25000);skyFast=false;
+ if(skyDur<=0){skyCur=to.slice();skyPaint();if(skyTm){clearInterval(skyTm);skyTm=0}}
+ else if(!skyTm)skyTm=setInterval(skyTick,200);
+}
 function updateSky(){
+ if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;
  if(!SKYS)return;const b=document.body,h_=document.documentElement,day=SKYS.dk<.45,was=h_.classList.contains("daytxt");
  h_.classList.toggle("daytxt",day);if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
- if(!S.dyn){b.style.removeProperty("--bg1");b.style.removeProperty("--bg2");return}
+ if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
  const th=document.documentElement.dataset.theme||"dark",[a,c]=skyColors(SKYS.dk,SKYS.c,SKYS.cl,th);
- b.style.setProperty("--bg1",rgbs(a));b.style.setProperty("--bg2",rgbs(c));
+ skySet(a,c);
 }
 /* ================= AFFICHAGE ================= */
 function status(msg,retry){
@@ -906,10 +942,14 @@ function render(){
  // lune (calcul local)
  const mo=moonInfo(now,C.lat,C.lon),ph=mo.ph,fr=mo.frac,wax=ph<.5,mi=fr<.01?0:fr>.99?4:Math.abs(fr-.5)<.06?(wax?2:6):fr<.5?(wax?1:7):(wax?3:5);
  const MN=[["🌑","Nouvelle lune"],["🌒","Premier croissant"],["🌓","Premier quartier"],["🌔","Gibbeuse croissante"],["🌕","Pleine lune"],["🌖","Gibbeuse décroissante"],["🌗","Dernier quartier"],["🌘","Dernier croissant"]];
- $("moonI").textContent=MN[mi][0];$("moonI").style.transform=C.lat<0?"scaleX(-1)":"";$("moonN").textContent=MN[mi][1];let mrise=null,mset=null,pa=mo.alt;
+ $("moonI").textContent=MN[mi][0];$("moonI").style.transform=C.lat<0?"scaleX(-1)":"";$("moonN").textContent=MN[mi][1];const prevF=fullMoon(now,-1,C.lat,C.lon),nextF=fullMoon(now,1,C.lat,C.lon);
+ const fmM=(t,C,n)=>{if(!t)return"";const dl=parts(t,C.tz),dn=parts(n,C.tz),dk=Math.round((Date.UTC(dl.y,dl.mo-1,dl.d)-Date.UTC(dn.y,dn.mo-1,dn.d))/864e5),
+  lbl=dk==0?"aujourd'hui":dk==-1?"hier":dk==1?"demain":(dk<0?"il y a "+(-dk)+" j":"dans "+dk+" j"),dt=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"short",timeZone:C.tz}).format(t);
+  return (t<n?"Dernière pleine lune : ":"Prochaine pleine lune : ")+lbl+" ("+dt+", "+fmtTs(t,C)+")"};
+ let mrise=null,mset=null,pa=mo.alt;
  for(let k=1;k<=144&&(!mrise||!mset);k++){const tt=now+k*6e5,a=moonInfo(tt,C.lat,C.lon).alt;if(pa<0&&a>=0&&!mrise)mrise=tt;if(pa>=0&&a<0&&!mset)mset=tt;pa=a}
  const mt=[mrise?"↑ Lever "+fmtTs(mrise,C):"",mset?"↓ Coucher "+fmtTs(mset,C):""].filter(Boolean).sort((a,b)=>(mrise&&mset&&mset<mrise)?(a[0]=="↓"?-1:1):0).join(" · ");
- $("moonS").innerHTML="Illumination "+Math.round(mo.frac*100)+"% · prochaine pleine lune dans "+Math.round(((.5-ph+1)%1)*29.53)+" j<br>"+(mo.alt>0?"Visible dans le ciel ("+Math.round(mo.alt/MR)+"° au-dessus de l'horizon)":"Sous l'horizon")+(mt?" · "+mt:"");
+ $("moonS").innerHTML="Illumination "+Math.round(mo.frac*100)+"%<br>"+fmM(prevF,C,now)+"<br>"+fmM(nextF,C,now)+"<br>"+(mo.alt>0?"Visible dans le ciel ("+Math.round(mo.alt/MR)+"° au-dessus de l'horizon)":"Sous l'horizon")+(mt?" · "+mt:"");
  // 10 jours
  const mn=Math.min(...days.map(d=>d.lo)),mx=Math.max(...days.map(d=>d.hi)),sp=Math.max(1,mx-mn);
  const slotH=x=>`<div class="hr"><div>${HR(x.H)}</div><div class="i">${ico(x.c,x.n)}</div><div style="font-weight:600">${T(x.t)}°</div><div class="p">${x.pp!=null&&x.pp>=20?x.pp+"%":""}</div><div class="w">${W(x.w)}</div><div class="w">💧 ${x.mm>=.1?x.mm.toFixed(1)+" mm":"–"}</div></div>`;
