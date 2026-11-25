@@ -371,7 +371,8 @@ function quick(E){
 
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
- const cv=document.getElementById("fx"),ctx=cv.getContext("2d");
+ const cv=document.getElementById("fx"),ctx=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
+ cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
  let sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
@@ -427,7 +428,7 @@ const FX=(()=>{
  }
  function resize(){
   const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -628,6 +629,67 @@ const FX=(()=>{
   }
  }
 
+
+ /* ---------- effets sur la 1re dalle : eau qui coule / neige qui s'accumule ---------- */
+ let cEl=null,cRad=20,rills=[],acc=0,rSp=0;
+ function cardRect(){
+  if(!cEl||!cEl.isConnected||!cEl.offsetParent){cEl=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){cEl=e;cRad=parseFloat(getComputedStyle(e).borderTopLeftRadius)||20;break}}}
+  return cEl?cEl.getBoundingClientRect():null;
+ }
+ function edgeY(x,L,Rr,top){const d=Math.min(x-L,Rr-x);return d>=cRad?top:top+cRad-Math.sqrt(Math.max(0,cRad*cRad-(cRad-d)*(cRad-d)))}
+ function drawCardFx(dt,t,rI,sI){
+  ctx2.setTransform(dpr,0,0,dpr,0,0);ctx2.clearRect(0,0,W,H);
+  const r=cardRect();if(!r||r.bottom<0||r.top>H-10){return}
+  const L=r.left,Rr=r.right,top=r.top;
+  // --- eau
+  if(rI>.02&&sI<.05){
+   rSp+=dt*(.35+1.5*rI);const mx=2+Math.round(6*rI);
+   while(rSp>=1){rSp--;if(rills.length<mx)rills.push({x:R(L+cRad,Rr-cRad),y:0,y0:0,r:R(.9,1.4),rm:R(2,3.1),hold:R(1.2,4.5),sl:0,v:0,vm:R(34,70)*(.7+.5*rI),a:1,fade:0,tr:[]})}
+  }
+  // film d'eau fin le long du bord
+  const wet=Math.min(1,rI*3);
+  if(wet>.02){
+   const g=ctx2.createLinearGradient(L,0,Rr,0);for(let i=0;i<=6;i++)g.addColorStop(i/6,`rgba(255,255,255,${(.1+.12*(.5+.5*Math.sin(t*.8+i*1.9)))*wet})`);
+   ctx2.strokeStyle=g;ctx2.lineWidth=1.3;ctx2.beginPath();ctx2.moveTo(L,top+cRad);ctx2.arc(L+cRad,top+cRad,cRad,Math.PI,Math.PI*1.5);ctx2.lineTo(Rr-cRad,top);ctx2.arc(Rr-cRad,top+cRad,cRad,Math.PI*1.5,Math.PI*2);ctx2.stroke();
+  }
+  ctx2.save();ctx2.beginPath();ctx2.roundRect?ctx2.roundRect(L,top-8,Rr-L,r.height+8,[cRad,cRad,cRad,cRad]):ctx2.rect(L,top-8,Rr-L,r.height+8);ctx2.clip();
+  for(let i=rills.length-1;i>=0;i--){
+   const p=rills[i];
+   if(p.fade>0){p.fade-=dt*1.6;p.a=Math.max(0,p.fade);if(p.a<=0){rills.splice(i,1);continue}}
+   else if(p.hold>0){p.hold-=dt;p.r=Math.min(p.rm,p.r+dt*.5);if(p.hold<=0){p.sl=R(.4,1.1);p.v=0}}
+   else{p.v=Math.min(p.vm,p.v+dt*160);p.y+=p.v*dt;p.sl-=dt;p.tr.push(p.y);if(p.tr.length>40)p.tr.shift();p.r=Math.max(.8,p.r-dt*.35);
+    if(p.sl<=0){p.v=0;p.hold=R(.3,1.6)}
+    if(p.y>R(50,96)&&p.fade<=0)p.fade=1}
+   const y=top+p.y,al=p.a;
+   if(p.y>1){ctx2.strokeStyle=`rgba(255,255,255,${.14*al})`;ctx2.lineWidth=Math.max(.7,p.r*.55);ctx2.lineCap="round";ctx2.beginPath();ctx2.moveTo(p.x,top+1.5);ctx2.lineTo(p.x,y);ctx2.stroke();
+    ctx2.strokeStyle=`rgba(10,24,48,${.07*al})`;ctx2.lineWidth=.8;ctx2.beginPath();ctx2.moveTo(p.x+p.r*.5,top+1.5);ctx2.lineTo(p.x+p.r*.5,y);ctx2.stroke()}
+   const rx=p.r*.8,ry=p.r*(1.05+Math.min(.5,p.v/120));
+   ctx2.fillStyle=`rgba(255,255,255,${.16*al})`;ctx2.beginPath();ctx2.ellipse(p.x,y,rx,ry,0,0,PI2);ctx2.fill();
+   ctx2.strokeStyle=`rgba(8,20,44,${.32*al})`;ctx2.lineWidth=.8;ctx2.beginPath();ctx2.ellipse(p.x,y,rx,ry,0,.15,Math.PI-.15);ctx2.stroke();
+   ctx2.fillStyle=`rgba(255,255,255,${.85*al})`;ctx2.beginPath();ctx2.arc(p.x-rx*.3,y-ry*.35,Math.max(.4,rx*.28),0,PI2);ctx2.fill();
+  }
+  if(rI<=.02||sI>=.05){for(const p of rills)p.fade=p.fade||1}
+  ctx2.restore();
+  // --- neige accumulée
+  if(sI>.03)acc=Math.min(1,Math.max(acc,.04)+dt*sI/140);else acc=Math.max(0,acc-dt/80);
+  if(acc>.01){
+   const hm=2.5+10.5*acc,step=3,pts=[];
+   for(let x=L+1;x<=Rr-1;x+=step){
+    const ey=edgeY(x,L,Rr,top),d=Math.min(x-L,Rr-x),tp=Math.min(1,.25+d/(cRad*1.4)),
+     n=.5+.5*(.55*Math.sin(x*.043+1.3)+.3*Math.sin(x*.117+.4)+.15*Math.sin(x*.29+2.1)),
+     h=hm*(.5+.5*n)*tp*Math.min(1,acc*8);
+    pts.push([x,ey,h]);
+   }
+   ctx2.beginPath();ctx2.moveTo(pts[0][0],pts[0][1]+1.5);
+   for(const q of pts)ctx2.lineTo(q[0],q[1]-q[2]);
+   for(let i=pts.length-1;i>=0;i--)ctx2.lineTo(pts[i][0],pts[i][1]+1.2+Math.min(2.5,pts[i][2]*.25));
+   ctx2.closePath();
+   const g=ctx2.createLinearGradient(0,top-hm,0,top+3);g.addColorStop(0,"rgba(255,255,255,.98)");g.addColorStop(.7,"rgba(238,244,252,.97)");g.addColorStop(1,"rgba(196,212,234,.95)");
+   ctx2.shadowColor="rgba(20,45,85,.28)";ctx2.shadowBlur=4;ctx2.shadowOffsetY=1;ctx2.fillStyle=g;ctx2.fill();ctx2.shadowColor="transparent";
+   ctx2.strokeStyle="rgba(140,165,200,.5)";ctx2.lineWidth=.7;ctx2.beginPath();for(let i=0;i<pts.length;i++){const q=pts[i];i?ctx2.lineTo(q[0],q[1]-q[2]):ctx2.moveTo(q[0],q[1]-q[2])}ctx2.stroke();
+   ctx2.strokeStyle="rgba(255,255,255,.9)";ctx2.lineWidth=1;ctx2.beginPath();for(let i=0;i<pts.length;i++){const q=pts[i];i?ctx2.lineTo(q[0],q[1]-q[2]-.4):ctx2.moveTo(q[0],q[1]-q[2]-.4)}ctx2.stroke();
+  }
+ }
  function frame(ts){
   const dt=Math.min(.05,Math.max(0,(ts-last)/1000)||.016);last=ts;const t=(ts-T0)/1000;
   ema+=(dt-ema)*.05;if(t-emaT>1.5){emaT=t;if(ema>.034&&q>.45){q-=.12;ema=.02}}
@@ -641,13 +703,15 @@ const FX=(()=>{
   drawFog(t,rI,sI);
   drawStorm(t);
   drawDrops(dt,rI);
+  drawCardFx(dt,t,rI,sI);
  }
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
  return{
   set(o){Object.assign(st,o);setup()},
-  start(){if(run||document.hidden)return;cv.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
+  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
+  _acc(v){acc=v},
   pause(){run=false},
-  stop(){run=false;cv.style.display="none"},
+  stop(){run=false;cv.style.display="none";cv2.style.display="none"},
   resize(){if(W||run){W=0;resize()}},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
  };
