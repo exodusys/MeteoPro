@@ -16,6 +16,7 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;background:linear-gradient(170deg,var(--bg1),var(--bg2));transition:--bg1 25s linear,--bg2 25s linear;overflow-x:hidden;background-attachment:fixed}
 body.nofade,body.nofade *{transition:none!important}
+body.quick{transition:--bg1 .8s ease,--bg2 .8s ease!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
 body.night{--bg1:#05070f;--bg2:#1b2245}
 body.rain{--bg1:#1c2733;--bg2:#3d5166}
@@ -402,7 +403,7 @@ const FX=(()=>{
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
- let sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
+ let fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
  const R=(a=0,b=1)=>a+Math.random()*(b-a);
  const PI2=Math.PI*2,WETC=["rain","shower","storm","sleet"],PRECIP=["rain","shower","storm","sleet","snow"];
  const srand=s=>()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
@@ -540,7 +541,7 @@ const FX=(()=>{
   if(cv_>.08&&(key!=deckKey||tier!==deckCv||!deck)){
    if(deck){deckOld=deck;deckT=0}deckKey=key;deckCv=tier;deck=[0,1,2].map(i=>mkDeck(i,PAL[key],tier));
   }
-  if(deckOld){deckT=Math.min(1,deckT+dt/5);if(deckT>=1)deckOld=null}
+  if(deckOld){deckT=Math.min(1,deckT+dt/(performance.now()<fastUntil?.7:5));if(deckT>=1)deckOld=null}
   const vis=Math.max(0,Math.min(1,(cv_-.06)*3));
   if(deck&&vis>.01){
    const LS=[{s:3,y:-.02,h:.26,a:.62,w:1.7},{s:7,y:-.04,h:.34,a:.85,w:1.4},{s:13,y:-.06,h:.42,a:1,w:1.15}];
@@ -721,7 +722,7 @@ const FX=(()=>{
   const dt=Math.min(.05,Math.max(0,(ts-last)/1000)||.016);last=ts;const t=(ts-T0)/1000;
   ema+=(dt-ema)*.05;if(t-emaT>1.5){emaT=t;if(ema>.034&&q>.45){q-=.12;ema=.02}}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/2.8);sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
+  const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/(performance.now()<fastUntil?.6:2.8));sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
   drawStars(t);drawSun(t);drawMoon();
   drawClouds(dt,t);
@@ -736,7 +737,7 @@ const FX=(()=>{
  return{
   set(o){Object.assign(st,o);setup()},
   start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
-  _acc(v){acc=v},
+  _acc(v){acc=v},fast(ms){fastUntil=performance.now()+ms},
   pause(){run=false},
   stop(){run=false;cv.style.display="none";cv2.style.display="none"},
   resize(){if(W||run){W=0;resize()}},
@@ -854,7 +855,7 @@ function render(){
  const{cur,days,hours,sun}=D,now=Date.now(),np=parts(now,C.tz);
  const tw=!!(sun.rise&&sun.set&&(Math.abs(now-sun.rise)<45*6e4||Math.abs(now-sun.set)<45*6e4));
  const bcls=!S.dyn?"":cur.n&&cur.c=="clear"?"night":["rain","shower","storm"].includes(cur.c)?"rain":["snow","sleet"].includes(cur.c)?"snow":cur.c=="fog"?"fog":cur.n?"night":tw?"dusk":"sunny";
- document.body.className=bcls+(document.body.classList.contains("nofade")?" nofade":"");
+ document.body.className=bcls+(document.body.classList.contains("nofade")?" nofade":"")+(document.body.classList.contains("quick")?" quick":"");
  const dk=darkness(now,sun,cur);SKYS={dk,c:cur.c,cl:cur.cl};updateSky();
  if(document.body.classList.contains("nofade"))requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.remove("nofade")));
  $("cityName").textContent=C.n+", "+C.c;
@@ -1163,12 +1164,14 @@ function resetCities(){
  CITIES=DEFAULTS.map(c=>({...c}));S.list=CITIES;S.city=0;RAW=null;D=null;reindex();save();drawCities();loadCities();refresh(false);toast("Villes réinitialisées");
 }
 
+let swapPend=false;
+function fastSwap(){swapPend=true;document.body.classList.add("quick");FX.fast(5000);setTimeout(()=>{swapPend=false;document.body.classList.remove("quick")},9000)}
 async function refresh(force){
  const ci=S.city;
  if(!D||D.C!==CITIES[ci]){ld(true);status("Chargement des données MET Norway…");$("cityName").textContent=CITIES[ci].n+", "+CITIES[ci].c}
  try{
   const raw=await fetchFull(ci);if(raw.C!==CITIES[S.city])return;
-  RAW=raw;render();status("");ld(false);if(force)toast("Données actualisées");
+  RAW=raw;render();status("");ld(false);if(force)toast("Données actualisées");if(swapPend){swapPend=false;setTimeout(()=>document.body.classList.remove("quick"),1200)}
  }catch(e){
   if(CITIES[ci]!==CITIES[S.city])return;
   if(!D||D.C!==CITIES[ci])status("Impossible de charger les données MET Norway ("+e.message+"). Vérifiez votre connexion.",true);
@@ -1185,11 +1188,11 @@ function locate(){
   if(k>=0){const o=CITIES[k],dl=(g.lat-o.lat)*111.2,dn=(g.lon-o.lon)*111.2*Math.cos(g.lat*Math.PI/180);
    if(Math.hypot(dl,dn)<1){S.city=k;save();go("today");refresh(false);toast("📍 Ma position");return}}   // < 1 km : on garde les données en cache
   if(k>=0)CITIES.splice(k,1);
-  CITIES.unshift(g);reindex();S.city=0;RAW=null;D=null;
+  fastSwap();CITIES.unshift(g);reindex();S.city=0;RAW=null;D=null;
   save();go("today");refresh(false);toast("📍 Ma position");
  },e=>toast(e.code==1?"Autorisation de localisation refusée":"Position introuvable"),{timeout:10000,maximumAge:600000});
 }
-function pickCity(i){S.city=i;save();go("today");refresh(false);toast("📍 "+CITIES[i].n)}
+function pickCity(i){if(i!==S.city)fastSwap();S.city=i;save();go("today");refresh(false);toast("📍 "+CITIES[i].n)}
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1600)}
 
 function go(v){document.querySelectorAll(".view").forEach(e=>e.classList.toggle("on",e.id=="v-"+v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));scrollTo(0,0);if(v!="map"&&playing)$("playBtn").click();if(S.anim){v=="today"?FX.start():FX.stop()}if(v=="map")setTimeout(drawRadar,30);if(v=="fc")setTimeout(drawChart,30);if(v=="cities"||v=="map")loadCities();try{history.replaceState(null,"","#"+v)}catch(e){}}
