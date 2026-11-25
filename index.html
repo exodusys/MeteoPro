@@ -554,7 +554,7 @@ const FX=(()=>{
   if(rain.length>N)rain.length=N;if(!N)return;
   const sl=Math.max(-.65,Math.min(.65,eastX()*Math.min(st.wind,60)/48)),col=st.light?"240,246,255":"206,224,246",LW=[.7,1.1,1.7].map(x=>x*(.62+.5*I)),A=[.17,.3,.46];
   for(const p of rain){const sv=.85+.25*I;p.y+=p.v*sv*dt;p.x+=p.v*sv*sl*dt;
-   if(p.y>floorY){if(p.x>fx0&&p.x<fx1&&p.z>0&&Math.random()<.8&&spl.length<220){const n=1+((Math.random()*2)|0);for(let k=0;k<n;k++)spl.push({x:p.x,y:floorY-1,vx:R(-70,70)+sl*60,vy:-R(110,280)*(.6+.5*p.z/2),l:R(.22,.5),r:R(.8,1.9)})}p.y=R(-90,-10);p.x=R(-W*.3,W*1.1)}
+   if(p.y>floorY){if(p.x>fx0&&p.x<fx1&&p.z>0&&Math.random()<.5*(1.15-.75*I)&&spl.length<70){const n=1;for(let k=0;k<n;k++)spl.push({x:p.x,y:floorY-1,vx:R(-70,70)+sl*60,vy:-R(80,200)*(.6+.5*p.z/2),l:R(.2,.38),r:R(.7,1.4)})}p.y=R(-90,-10);p.x=R(-W*.3,W*1.1)}
    else if(p.y>H+40||p.x<-W*.5||p.x>W*1.5){p.y=R(-90,-10);p.x=R(-W*.3,W*1.1)}}
   ctx.lineCap="round";
   for(let z=0;z<3;z++){ctx.lineWidth=LW[z];ctx.strokeStyle=`rgba(${col},${A[z]*(.55+.6*I)})`;ctx.beginPath();
