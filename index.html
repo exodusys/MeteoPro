@@ -426,7 +426,8 @@ function quick(E){
 
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
- const cv=document.getElementById("fx"),ctx=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
+ const cv=document.getElementById("fx"),ctxF=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d"),cvS=document.createElement("canvas"),ctxS=cvS.getContext("2d");let ctx=ctxF;
+ cvS.style.cssText="position:absolute;left:0;top:0;z-index:0;pointer-events:none;display:none";document.body.insertBefore(cvS,cv);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none;transform:translateZ(0);-webkit-transform:translateZ(0)";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -484,8 +485,8 @@ const FX=(()=>{
  function resize(){
   const w=innerWidth,h=Math.max(innerHeight,document.getElementById("lvh").offsetHeight||0);if(w==W&&h==H)return;
   // iPhone : la barre Safari qui se replie en défilant change seulement la hauteur → on garde l'animation en place
-  if(W&&w==W&&Math.abs(h-H)<240){if(h>H){H=h;cv.height=cv2.height=Math.round(H*dpr);cv.style.height=cv2.style.height=H+"px"}return}
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv.style.width=cv2.style.width=W+"px";cv.style.height=cv2.style.height=H+"px";
+  if(W&&w==W&&Math.abs(h-H)<240){if(h>H){H=h;cv.height=cv2.height=cvS.height=Math.round(H*dpr);cv.style.height=cv2.style.height=cvS.style.height=H+"px"}return}
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cvS.width=cv.width;cv2.height=cvS.height=cv.height;cv.style.width=cv2.style.width=cvS.style.width=W+"px";cv.style.height=cv2.style.height=cvS.style.height=H+"px";
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -755,10 +756,10 @@ const FX=(()=>{
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/(performance.now()<fastUntil?.6:2.8));sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
-  // soleil, lune et nuages défilent avec la page ; la pluie, la neige et le brouillard restent fixes à l'écran
-  const sy=Math.max(-H*.25,Math.min(H*1.3,window.pageYOffset||0));
-  ctx.save();ctx.translate(0,-sy*.3);drawStars(t);ctx.restore();
-  ctx.save();ctx.translate(0,-sy);drawSun(t);drawMoon();drawClouds(dt,t);ctx.restore();
+  // soleil, lune, étoiles et nuages sont sur un calque qui défile nativement avec la page ; pluie, neige et brouillard restent fixes
+  ctx=ctxS;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  drawStars(t);drawSun(t);drawMoon();drawClouds(dt,t);
+  ctx=ctxF;
   measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}else{rain.length=0;spl.length=0}
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
   drawFog(t,rI,sI);
@@ -769,10 +770,10 @@ const FX=(()=>{
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
  return{
   set(o){Object.assign(st,o);setup()},
-  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
+  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";cvS.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
   _acc(v){acc=v},fast(ms){fastUntil=performance.now()+ms},
   pause(){run=false},
-  stop(){run=false;cv.style.display="none";cv2.style.display="none"},
+  stop(){run=false;cv.style.display="none";cv2.style.display="none";cvS.style.display="none"},
   resize(){if(W||run)resize()},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
  };
