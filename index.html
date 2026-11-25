@@ -17,7 +17,7 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
 html{background:var(--bg2)}
-#sky{transform:translateZ(0);-webkit-transform:translateZ(0);position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
+#sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
 body.night{--bg1:#05070f;--bg2:#1b2245}
@@ -71,8 +71,7 @@ canvas{width:100%;display:block}
 .wi{width:1em;height:1em;vertical-align:-.14em;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
 .chip .wi{width:1.55em;height:1.55em;vertical-align:-.42em;margin:-5px 3px -5px 0}
 .ct svg.ci{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-#fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none;transform:translateZ(0);-webkit-transform:translateZ(0)}
-#lvh{position:fixed;left:0;top:0;width:1px;height:100vh;height:100lvh;visibility:hidden;pointer-events:none}
+#fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
 .fxon .hero{padding:34px 0 64px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl{text-shadow:0 1px 14px rgba(0,0,0,.22)}
 html.daytxt{--txt:#0b1220;--mut:rgba(11,18,32,.7);--acc:#0a5fb0;--onacc:#fff}
 html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5ec8ff}
@@ -136,7 +135,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 </style>
 </head>
 <body class="sunny nofade">
-<div id="sky"></div><div id="lvh"></div>
+<div id="sky"></div>
 <canvas id="fx"></canvas>
 <div class="app">
 
@@ -426,9 +425,8 @@ function quick(E){
 
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
- const cv=document.getElementById("fx"),ctxF=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d"),cvS=document.createElement("canvas"),ctxS=cvS.getContext("2d");let ctx=ctxF;
- cvS.style.cssText="position:absolute;left:0;top:0;z-index:0;pointer-events:none;display:none";document.body.insertBefore(cvS,cv);
- cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none;transform:translateZ(0);-webkit-transform:translateZ(0)";document.body.appendChild(cv2);
+ const cv=document.getElementById("fx"),ctx=cv.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
+ cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
  let fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
@@ -483,10 +481,8 @@ const FX=(()=>{
   if(st.c!="storm")nextBolt=0;
  }
  function resize(){
-  const w=innerWidth,h=Math.max(innerHeight,document.getElementById("lvh").offsetHeight||0);if(w==W&&h==H)return;
-  // iPhone : la barre Safari qui se replie en défilant change seulement la hauteur → on garde l'animation en place
-  if(W&&w==W&&Math.abs(h-H)<240){if(h>H){H=h;cv.height=cv2.height=cvS.height=Math.round(H*dpr);cv.style.height=cv2.style.height=cvS.style.height=H+"px"}return}
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cvS.width=cv.width;cv2.height=cvS.height=cv.height;cv.style.width=cv2.style.width=cvS.style.width=W+"px";cv.style.height=cv2.style.height=cvS.style.height=H+"px";
+  const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -603,7 +599,7 @@ const FX=(()=>{
  }
  function rainI(){if(!WETC.includes(st.c))return 0;let I=Math.sqrt(Math.max(0,st.mm)/8);I=Math.min(1,Math.max(I,{rain:.1,shower:.18,storm:.55,sleet:.12}[st.c]));return st.c=="sleet"?I*.6:I}
  function snowI(){if(st.c=="snow")return Math.min(1,Math.max(Math.sqrt(Math.max(0,st.mm)/3),.12));return st.c=="sleet"?.4:0}
- function measureFloor(t){if(t-fmT<.016)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}if(r.top>24&&r.top<H){floorY=r.top+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
+ function measureFloor(t){if(t-fmT<.1)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}if(r.top>24&&r.top<H){floorY=r.top+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
  const dotS=(()=>{const c=off(32,32),g=c.getContext("2d"),gr=g.createRadialGradient(16,16,0,16,16,16);gr.addColorStop(0,"rgba(236,243,252,1)");gr.addColorStop(.45,"rgba(226,236,250,.75)");gr.addColorStop(1,"rgba(226,236,250,0)");g.fillStyle=gr;g.fillRect(0,0,32,32);return c})();
  let splAcc=0;
  function drawSplash(dt,I){
@@ -756,10 +752,8 @@ const FX=(()=>{
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/(performance.now()<fastUntil?.6:2.8));sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
-  // soleil, lune, étoiles et nuages sont sur un calque qui défile nativement avec la page ; pluie, neige et brouillard restent fixes
-  ctx=ctxS;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  drawStars(t);drawSun(t);drawMoon();drawClouds(dt,t);
-  ctx=ctxF;
+  drawStars(t);drawSun(t);drawMoon();
+  drawClouds(dt,t);
   measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}else{rain.length=0;spl.length=0}
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
   drawFog(t,rI,sI);
@@ -770,11 +764,11 @@ const FX=(()=>{
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
  return{
   set(o){Object.assign(st,o);setup()},
-  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";cvS.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
+  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
   _acc(v){acc=v},fast(ms){fastUntil=performance.now()+ms},
   pause(){run=false},
-  stop(){run=false;cv.style.display="none";cv2.style.display="none";cvS.style.display="none"},
-  resize(){if(W||run)resize()},
+  stop(){run=false;cv.style.display="none";cv2.style.display="none"},
+  resize(){if(W||run){W=0;resize()}},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
  };
 })();
