@@ -313,6 +313,20 @@ async function getSun(C){
  const j=await metGet(MET+"sunrise/3.0/sun?lat="+C.lat.toFixed(3)+"&lon="+C.lon.toFixed(3)+"&date="+d+"&offset=%2B00:00");
  const p=j.properties;return{rise:p.sunrise?Date.parse(p.sunrise.time):null,set:p.sunset?Date.parse(p.sunset.time):null};
 }
+/* ----- Lune : position, phase et orientation selon la ville (algorithme SunCalc) ----- */
+const MR=Math.PI/180,mE=MR*23.4397,mDays=t=>t/864e5-.5+2440588-2451545;
+const mRA=(l,b)=>Math.atan2(Math.sin(l)*Math.cos(mE)-Math.tan(b)*Math.sin(mE),Math.cos(l)),mDec=(l,b)=>Math.asin(Math.sin(b)*Math.cos(mE)+Math.cos(b)*Math.sin(mE)*Math.sin(l));
+function moonCo(d){const L=MR*(218.316+13.176396*d),M=MR*(134.963+13.064993*d),F=MR*(93.272+13.22935*d),l=L+MR*6.289*Math.sin(M),b=MR*5.128*Math.sin(F);return{ra:mRA(l,b),dec:mDec(l,b),dist:385001-20905*Math.cos(M)}}
+function moonInfo(ts,lat,lon){
+ const d=mDays(ts),m=moonCo(d),lw=-MR*lon,phi=MR*lat,H=MR*(280.16+360.9856235*d)-lw-m.ra;
+ let alt=Math.asin(Math.sin(phi)*Math.sin(m.dec)+Math.cos(phi)*Math.cos(m.dec)*Math.cos(H));
+ const az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(phi)-Math.tan(m.dec)*Math.cos(phi)),para=Math.atan2(Math.sin(H),Math.tan(phi)*Math.cos(m.dec)-Math.sin(m.dec)*Math.cos(H));
+ const Ms=MR*(357.5291+.98560028*d),Cc=MR*(1.9148*Math.sin(Ms)+.02*Math.sin(2*Ms)+.0003*Math.sin(3*Ms)),Ls=Ms+Cc+MR*102.9372+Math.PI,sra=mRA(Ls,0),sdec=mDec(Ls,0);
+ const ph=Math.acos(Math.sin(sdec)*Math.sin(m.dec)+Math.cos(sdec)*Math.cos(m.dec)*Math.cos(sra-m.ra)),inc=Math.atan2(149598000*Math.sin(ph),m.dist-149598000*Math.cos(ph)),
+  ang=Math.atan2(Math.cos(sdec)*Math.sin(sra-m.ra),Math.sin(sdec)*Math.cos(m.dec)-Math.cos(sdec)*Math.sin(m.dec)*Math.cos(sra-m.ra));
+ if(alt>=0)alt+=.0002967/Math.tan(alt+.00312536/(alt+.08901179));
+ return{az,alt,para,ang,frac:(1+Math.cos(inc))/2,ph:.5+.5*inc*(ang<0?-1:1)/Math.PI};
+}
 // secours si l'API lever/coucher est indisponible
 function sunCalc(C){
  const R=Math.PI/180,pp=parts(Date.now(),C.tz),n=Math.round(Date.UTC(pp.y,pp.mo-1,pp.d,12)/864e5+2440587.5-C.lon/360-2451545),Js=n-C.lon/360,
@@ -494,11 +508,13 @@ const FX=(()=>{
   if(st.moon==null||st.dk<.2)return;
   const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.03)return;
   let v=(1-st.cl/100*.92)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c)||st.c=="fog")v*=.1;if(v<.03)return;
-  const m=st.moon,x=W*(.14+.72*m),y=H*(.27-.15*Math.sin(m*Math.PI)),r=Math.min(32,W*.08);
+  const m=st.moon;let an=m.az;if(m.south){an=an>0?an-Math.PI:an+Math.PI}
+  const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.42-.3*Math.min(1,m.alt/(1.22))),r=Math.min(32,W*.08),
+   lit=(m.south?1:-1)*(m.ang-m.para)*(m.south?1:1);
   const g=ctx.createRadialGradient(x,y,r*.6,x,y,r*7);g.addColorStop(0,`rgba(190,205,255,${.3*v*(.3+.7*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);
   ctx.save();ctx.translate(x,y);
   ctx.globalAlpha=v*.16;ctx.fillStyle="#9aa9d0";ctx.beginPath();ctx.arc(0,0,r,0,PI2);ctx.fill();
-  ctx.globalAlpha=v;if(st.ph>.5)ctx.scale(-1,1);
+  ctx.globalAlpha=v;ctx.rotate((m.south?m.ang-m.para:m.para-m.ang)-(st.ph<=.5?Math.PI/2:3*Math.PI/2));if(st.ph>.5)ctx.scale(-1,1);
   const a=r*Math.cos(st.ph*PI2*(st.ph>.5?1:1));
   ctx.beginPath();ctx.arc(0,0,r,-Math.PI/2,Math.PI/2,false);
   const aa=st.ph<=.5?r*Math.cos(st.ph*PI2):r*Math.cos((1-st.ph)*PI2);
@@ -888,16 +904,19 @@ function render(){
   const dl=Math.round((sun.set-sun.rise)/6e4);$("dayLen").textContent=Math.floor(dl/60)+" h "+(dl%60)+" min de jour";
  }else{$("sunSvg").innerHTML="";$("rise").textContent="↑ —";$("set").textContent="↓ —";$("dayLen").textContent="";}
  // lune (calcul local)
- const lp=2551443,ph=((now/1000-592500)%lp)/lp,mi=Math.round(ph*8)%8;
+ const mo=moonInfo(now,C.lat,C.lon),ph=mo.ph,fr=mo.frac,wax=ph<.5,mi=fr<.01?0:fr>.99?4:Math.abs(fr-.5)<.06?(wax?2:6):fr<.5?(wax?1:7):(wax?3:5);
  const MN=[["🌑","Nouvelle lune"],["🌒","Premier croissant"],["🌓","Premier quartier"],["🌔","Gibbeuse croissante"],["🌕","Pleine lune"],["🌖","Gibbeuse décroissante"],["🌗","Dernier quartier"],["🌘","Dernier croissant"]];
- $("moonI").textContent=MN[mi][0];$("moonN").textContent=MN[mi][1];$("moonS").textContent="Illumination "+Math.round((1-Math.cos(ph*2*Math.PI))/2*100)+"% · prochaine pleine lune dans "+Math.round(((.5-ph+1)%1)*29.5)+" j";
+ $("moonI").textContent=MN[mi][0];$("moonI").style.transform=C.lat<0?"scaleX(-1)":"";$("moonN").textContent=MN[mi][1];let mrise=null,mset=null,pa=mo.alt;
+ for(let k=1;k<=144&&(!mrise||!mset);k++){const tt=now+k*6e5,a=moonInfo(tt,C.lat,C.lon).alt;if(pa<0&&a>=0&&!mrise)mrise=tt;if(pa>=0&&a<0&&!mset)mset=tt;pa=a}
+ const mt=[mrise?"↑ Lever "+fmtTs(mrise,C):"",mset?"↓ Coucher "+fmtTs(mset,C):""].filter(Boolean).sort((a,b)=>(mrise&&mset&&mset<mrise)?(a[0]=="↓"?-1:1):0).join(" · ");
+ $("moonS").innerHTML="Illumination "+Math.round(mo.frac*100)+"% · prochaine pleine lune dans "+Math.round(((.5-ph+1)%1)*29.53)+" j<br>"+(mo.alt>0?"Visible dans le ciel ("+Math.round(mo.alt/MR)+"° au-dessus de l'horizon)":"Sous l'horizon")+(mt?" · "+mt:"");
  // 10 jours
  const mn=Math.min(...days.map(d=>d.lo)),mx=Math.max(...days.map(d=>d.hi)),sp=Math.max(1,mx-mn);
  const slotH=x=>`<div class="hr"><div>${HR(x.H)}</div><div class="i">${ico(x.c,x.n)}</div><div style="font-weight:600">${T(x.t)}°</div><div class="p">${x.pp!=null&&x.pp>=20?x.pp+"%":""}</div><div class="w">${W(x.w)}</div><div class="w">💧 ${x.mm>=.1?x.mm.toFixed(1)+" mm":"–"}</div></div>`;
  $("days").innerHTML=days.map((d,i)=>`<div class="day" onclick="openDay(this)"><div>${i?DAYS[wd(d.p)]+" "+d.p.d:"Auj."}</div><div class="i">${ico(d.c)}</div><div class="lo">${T(d.lo)}°</div><div class="rng"><i style="left:${(d.lo-mn)/sp*100}%;right:${100-(d.hi-mn)/sp*100}%"></i></div><div>${T(d.hi)}°</div><div class="detail" onclick="event.stopPropagation()">${COND[d.c][0]} · 💧 ${d.pp!=null?d.pp+"% ":""}(${d.mm.toFixed(1)} mm) · 💨 ${W(d.wind)} · ☀️ UV ${d.uv} · Humidité ${d.hum}%<div class="hours">${d.slots.map(slotH).join("")}</div>${d.slots.some(x=>x.six)?'<div style="margin-top:6px">Créneaux de 6 h : le détail horaire n\'est pas disponible à cette échéance.</div>':""}</div></div>`).join("");
  let sunF=null,moon=null;
- if(sun.rise&&sun.set){if(now>=sun.rise&&now<=sun.set)sunF=(now-sun.rise)/(sun.set-sun.rise);else{const ns=now>sun.set?sun.set:sun.set-864e5,nr=now>sun.set?sun.rise+864e5:sun.rise;moon=Math.max(0,Math.min(1,(now-ns)/(nr-ns)))}}
- else{sunF=cur.n?null:.5;moon=cur.n?.5:null}
+ if(sun.rise&&sun.set){if(now>=sun.rise&&now<=sun.set)sunF=(now-sun.rise)/(sun.set-sun.rise)}else sunF=cur.n?null:.5;
+ if(mo.alt>0)moon={az:mo.az,alt:mo.alt,para:mo.para,ang:mo.ang,south:C.lat<0};
  fxUpdate({c:cur.c,n:cur.n,dk,cl:cur.cl,wind:cur.wind,dir:cur.dir,mm:hours[0].mm*(hours[0].mm>0?1:0),fog:cur.fog||0,sunF,moon,ph,tw});
  drawChart();drawCities();
 }
