@@ -373,13 +373,13 @@ const FX=(()=>{
  const cv=document.getElementById("fx"),ctx=cv.getContext("2d");
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
- let sprOld=null,trans=1,clouds=[],spr=[],sprKey="",rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
+ let sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
  const R=(a=0,b=1)=>a+Math.random()*(b-a);
  const PI2=Math.PI*2,WETC=["rain","shower","storm","sleet"],PRECIP=["rain","shower","storm","sleet","snow"];
  const srand=s=>()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
  const off=(w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c};
- const PAL={day:[[255,255,255],[190,208,232]],cloud:[[236,240,246],[156,168,188]],rain:[[170,182,198],[92,104,122]],storm:[[100,110,130],[40,46,62]],
-  snow:[[206,214,228],[128,140,162]],night:[[104,118,158],[34,42,72]],dusk:[[255,208,178],[138,98,134]],fog:[[214,219,226],[168,175,186]]};
+ const PAL={day:[[255,255,255],[168,192,224]],cloud:[[240,244,250],[132,148,172]],rain:[[198,209,222],[66,80,102]],storm:[[134,144,164],[26,32,48]],
+  snow:[[224,231,242],[116,130,154]],night:[[122,136,178],[26,34,64]],dusk:[[255,214,186],[126,88,128]],fog:[[218,223,230],[160,168,180]]};
  const palKey=()=>st.c=="storm"?"storm":WETC.includes(st.c)?"rain":st.c=="snow"?"snow":st.c=="fog"?"fog":st.dk>.72?"night":st.dk>.3?"dusk":(st.c=="cloud"&&st.cl>70)?"cloud":"day";
  const eastX=()=>-Math.sin(st.dir*Math.PI/180);
  const driftDir=()=>{let d=eastX();if(Math.abs(d)<.3)d=d<0?-.3:.3;return d};
@@ -419,10 +419,7 @@ const FX=(()=>{
  function cover(){let c=st.cl/100;if(st.c=="fog")c=Math.max(c,.4);if(PRECIP.includes(st.c))c=Math.max(c,.5+.42*pI);return c}
  function setup(){
   if(!W)return;
-  const k=palKey();if(k!=sprKey){if(spr.length){sprOld=spr;trans=0}sprKey=k;spr=[0,1,2,3,4,5].map(i=>mkCloud(i+1,PAL[k]))}
-  const cv_=PRECIP.includes(st.c)?.95:cover(),n=Math.round((1.5+cv_*11)*(W>600?1.5:1));
-  while(clouds.length>n)clouds.pop();while(clouds.length<n)clouds.push(newCloud(true,cv_));
-  const fk=st.dk>.6?"n":"d";if(fk!=fogKey){fogKey=fk;fogS=mkFog((fk=="n"?PAL.night[0]:PAL.fog[0]).join(","))}
+  const cv_=0;  const fk=st.dk>.6?"n":"d";if(fk!=fogKey){fogKey=fk;fogS=mkFog((fk=="n"?PAL.night[0]:PAL.fog[0]).join(","))}
   if(!moonS)moonS=mkMoon();
   if(st.c=="storm"&&nextBolt==0)nextBolt=(performance.now()-T0)/1000+R(1.2,3.5);
   if(st.c!="storm")nextBolt=0;
@@ -478,19 +475,68 @@ const FX=(()=>{
   if(aa>=0)ctx.ellipse(0,0,Math.max(aa,.01),r,0,Math.PI/2,-Math.PI/2,true);else ctx.ellipse(0,0,-aa,r,0,Math.PI/2,Math.PI*1.5,false);
   ctx.closePath();ctx.clip();ctx.drawImage(moonS,-r,-r,r*2,r*2);ctx.restore();ctx.globalAlpha=1;
  }
- function drawClouds(dt){
-  const dd=driftDir(),sp=3+Math.min(st.wind,70)*.6,cv_=cover();if(sprOld){trans=Math.min(1,trans+dt/25);if(trans>=1)sprOld=null}
-  clouds.sort((a,b)=>a.z-b.z);
-  const nMax=clouds.length,nAct=Math.round((1.5+cv_*11)*(W>600?1.5:1)),pb=PRECIP.includes(st.c)?.72+.28*pI:1;
-  for(const c of clouds){
-   const vis=Math.max(0,Math.min(1,(nAct/Math.max(1,nMax)-c.k)*5+.5));if(vis<=.01){c.x+=dd*sp*(.35+c.z*1.1)*dt;continue}
-   c.x+=dd*sp*(.35+c.z*1.1)*dt;const w=560*c.sc;
-   if(dd>0&&c.x>W+20){Object.assign(c,newCloud(false,cv_))}else if(dd<0&&c.x<-w-20){Object.assign(c,newCloud(false,cv_))}
-   const ca=c.a*vis*pb;if(sprOld&&trans<1){ctx.globalAlpha=ca*(1-trans);ctx.drawImage(sprOld[c.i],c.x,c.y,w,240*c.sc);ctx.globalAlpha=ca*trans}else ctx.globalAlpha=ca;ctx.drawImage(spr[c.i],c.x,c.y,w,240*c.sc);
+
+ /* ---------- couches nuageuses (bruit fractal, bords éclairés) ---------- */
+ function mkDeck(layer,p,cv){
+  const TW=512,TH=170,c=off(TW,TH),g=c.getContext("2d"),im=g.createImageData(TW,TH),D=new Float32Array(TW*TH),r=srand(layer*104729+17);
+  const NX=[2,3,4][layer],NY=[7,9,11][layer],O=5,grids=[];
+  for(let o=0;o<O;o++){const nx=NX<<o,ny=(NY<<o)+1,a=new Float32Array(nx*ny);for(let i=0;i<a.length;i++)a[i]=r();grids.push({nx,ny,a})}
+  const sm=t=>t*t*(3-2*t);
+  const nz=(G,x,y)=>{const fx=x*G.nx,fy=y*(G.ny-1),x0=Math.floor(fx),y0=Math.floor(fy),tx=sm(fx-x0),ty=sm(fy-y0),X0=((x0%G.nx)+G.nx)%G.nx,X1=(X0+1)%G.nx,Y0=Math.min(G.ny-1,Math.max(0,y0)),Y1=Math.min(G.ny-1,Y0+1),A=G.a;
+   return(A[Y0*G.nx+X0]*(1-tx)+A[Y0*G.nx+X1]*tx)*(1-ty)+(A[Y1*G.nx+X0]*(1-tx)+A[Y1*G.nx+X1]*tx)*ty};
+  const fbm=(x,y)=>{let v=0,a=.5,n=0;for(let o=0;o<O;o++){v+=a*nz(grids[o],x,y);n+=a;a*=.52}return v/n};
+  const thr=.66-.36*cv;
+  for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){
+   const u=x/TW,v=y/TH,w1=nz(grids[1],(u+.31)%1,v)-.5,w2=nz(grids[1],(u+.67)%1,Math.min(1,v+.13))-.5;
+   let d=fbm(((u+w1*.035)%1+1)%1,Math.min(1,Math.max(0,v+w2*.02)));
+   D[y*TW+x]=d-v*.42;
   }
-  ctx.globalAlpha=1;
-  const dim=cv_*(st.c=="storm"?.3+.3*pI:WETC.includes(st.c)?.16+.3*pI:st.c=="snow"?(st.light?.05+.12*pI:.14+.24*pI):st.c=="cloud"?.1:0);
+  for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){
+   const i=y*TW+x,d=D[i],al=Math.max(0,Math.min(1,(d-thr)/.2)),al2=al*al*(3-2*al);
+   const dx=D[y*TW+(x+3)%TW],dy=D[Math.min(TH-1,y+4)*TW+x],lit=(d-(dx+dy)*.5)*5;
+   let k=.5+lit+(d-thr)*1.1;k=Math.max(0,Math.min(1,k));
+   const o=i*4,L=p[0],Dk=p[1];
+   im.data[o]=Dk[0]+(L[0]-Dk[0])*k;im.data[o+1]=Dk[1]+(L[1]-Dk[1])*k;im.data[o+2]=Dk[2]+(L[2]-Dk[2])*k;im.data[o+3]=al2*255;
+  }
+  g.putImageData(im,0,0);return c;
+ }
+ function mkShaft(){
+  const w=96,h=480,c=off(w,h),g=c.getContext("2d"),im=g.createImageData(w,h);
+  for(let y=0;y<h;y++){const v=y/h,f=Math.pow(1-v,1.7)*Math.min(1,v*14);for(let x=0;x<w;x++){const u=(x-w/2)/(w/2),a=Math.exp(-u*u*3.2)*f,o=(y*w+x)*4;im.data[o]=235;im.data[o+1]=242;im.data[o+2]=252;im.data[o+3]=a*255}}
+  g.putImageData(im,0,0);return c;
+ }
+ function drawClouds(dt,t){
+  const dd=driftDir(),wsp=1+Math.min(st.wind,70)*.05,cv_=cover(),key=palKey(),pb=PRECIP.includes(st.c)?.8+.2*pI:1;
+  const cvT=Math.min(.95,Math.max(.2,cv_)),tier=Math.abs(cvT-deckCv)>.17||deckCv<0?cvT:deckCv;
+  if(cv_>.08&&(key!=deckKey||tier!==deckCv||!deck)){
+   if(deck){deckOld=deck;deckT=0}deckKey=key;deckCv=tier;deck=[0,1,2].map(i=>mkDeck(i,PAL[key],tier));
+  }
+  if(deckOld){deckT=Math.min(1,deckT+dt/5);if(deckT>=1)deckOld=null}
+  const vis=Math.max(0,Math.min(1,(cv_-.06)*3));
+  if(deck&&vis>.01){
+   const LS=[{s:3,y:-.02,h:.26,a:.62,w:1.7},{s:7,y:-.04,h:.34,a:.85,w:1.4},{s:13,y:-.06,h:.42,a:1,w:1.15}];
+   for(let l=0;l<3;l++){
+    const L=LS[l],hh=H*(L.h*.55+.14*cv_)*(W>600?.8:1),ww=Math.max(W*L.w,820),y=H*L.y,xo=(((t*L.s*wsp*dd*.6)%ww)+ww)%ww,
+     draw=(img,al)=>{if(al<=.005)return;ctx.globalAlpha=al*L.a*vis*pb;ctx.drawImage(img,xo-ww,y,ww,hh);ctx.drawImage(img,xo,y,ww,hh);ctx.drawImage(img,xo+ww,y,ww,hh)};
+    if(deckOld){draw(deckOld[l],1-deckT);draw(deck[l],deckT)}else draw(deck[l],1);
+   }
+   ctx.globalAlpha=1;
+  }
+  const dim=cv_*(st.c=="storm"?.3+.3*pI:WETC.includes(st.c)?.14+.28*pI:st.c=="snow"?(st.light?.05+.12*pI:.14+.24*pI):st.c=="cloud"?.1:0);
   if(dim>.01){const g=ctx.createLinearGradient(0,0,0,H*.75);g.addColorStop(0,`rgba(12,17,28,${dim})`);g.addColorStop(1,"rgba(12,17,28,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+  // rayons de lumière diffus sous la couche nuageuse
+  const lt=(1-Math.min(1,st.dk*1.5))*Math.min(1,cv_*1.3)*(st.c=="storm"?.35:st.c=="fog"?.3:1);
+  if(lt>.04&&cv_>.3){
+   if(!shaft)shaft=mkShaft();
+   ctx.save();ctx.globalCompositeOperation="lighter";const lean=.16+(st.sunF!=null?(.5-st.sunF)*.3:0);
+   for(let k=0;k<9;k++){
+    const ph=k*2.399,x=W*((k+.5)/9)+Math.sin(t*.07+ph)*W*.04,wd=W*(.2+.16*((k*37)%5)/5),len=H*(.62+.3*Math.abs(Math.sin(ph*1.7))),
+     a=lt*(.1+.09*Math.sin(t*.22+ph*2)*Math.sin(t*.13+ph))*(PRECIP.includes(st.c)?1.1:.8);
+    if(a<=.004)continue;
+    ctx.globalAlpha=Math.min(.2,a);ctx.save();ctx.translate(x,H*.02);ctx.rotate(-lean);ctx.drawImage(shaft,-wd/2,0,wd,len);ctx.restore();
+   }
+   ctx.restore();ctx.globalAlpha=1;
+  }
  }
  function rainI(){if(!WETC.includes(st.c))return 0;let I=Math.sqrt(Math.max(0,st.mm)/8);I=Math.min(1,Math.max(I,{rain:.1,shower:.18,storm:.55,sleet:.12}[st.c]));return st.c=="sleet"?I*.6:I}
  function snowI(){if(st.c=="snow")return Math.min(1,Math.max(Math.sqrt(Math.max(0,st.mm)/3),.12));return st.c=="sleet"?.4:0}
@@ -498,7 +544,7 @@ const FX=(()=>{
   const area=W*H/(390*844),N=Math.round(I*760*area*q);
   while(rain.length<N){const z=(Math.random()*3)|0;rain.push({x:R(-W*.3,W*1.1),y:R(-100,H),z,v:[760,1080,1480][z]*R(.88,1.12)})}
   if(rain.length>N)rain.length=N;if(!N)return;
-  const sl=Math.max(-.65,Math.min(.65,eastX()*Math.min(st.wind,60)/48)),col=st.light?"240,246,255":"206,224,246",LW=[.7,1.1,1.7],A=[.17,.3,.46];
+  const sl=Math.max(-.65,Math.min(.65,eastX()*Math.min(st.wind,60)/48)),col=st.light?"240,246,255":"206,224,246",LW=[.7,1.1,1.7].map(x=>x*(.62+.5*I)),A=[.17,.3,.46];
   for(const p of rain){const sv=.85+.25*I;p.y+=p.v*sv*dt;p.x+=p.v*sv*sl*dt;if(p.y>H+40||p.x<-W*.5||p.x>W*1.5){p.y=R(-90,-10);p.x=R(-W*.3,W*1.1)}}
   ctx.lineCap="round";
   for(let z=0;z<3;z++){ctx.lineWidth=LW[z];ctx.strokeStyle=`rgba(${col},${A[z]*(.55+.6*I)})`;ctx.beginPath();
@@ -569,7 +615,7 @@ const FX=(()=>{
   const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/2.8);sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
   drawStars(t);drawSun(t);drawMoon();
-  drawClouds(dt);
+  drawClouds(dt,t);
   if(rI>0)drawRain(dt,rI);else rain.length=0;
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
   drawFog(t,rI,sI);
