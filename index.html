@@ -306,24 +306,38 @@ function expOf(r,now,u){
  const e=Date.parse(r.headers.get("expires")||"");
  return Math.max(isFinite(e)?e:0,now+minTtl(u))+Math.random()*3*60e3;
 }
-let MS={n:0,c304:0,hit:0,err:0,fb:0,by:{},cf:{},since:Date.now()};
+let MS={n:0,c304:0,hit:0,err:0,fb:0,by:{},cf:{},hby:{},since:Date.now()};
 try{const o=JSON.parse(localStorage.getItem("meteoMetStats")||"null");if(o&&typeof o.n=="number")MS=Object.assign(MS,o)}catch(e){}
 function metShow(){
  const n=document.getElementById("metN");if(!n)return;
  document.getElementById("metLbl").textContent=PROXY?"Requêtes envoyées à Cloudflare (proxy)":"Requêtes envoyées à MET Norway (direct)";
  n.textContent=MS.n;
  const d=new Date(MS.since),dt=d.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
- const cfInfo=()=>{
-  if(!PROXY)return "";const c=MS.cf||{},g=k=>c[k]||0,hit=g("HIT")+g("COALESCED"),met=g("MISS")+g("REVALIDATED"),st=g("HIT-STALE")+g("MISS-STALE")+g("REVALIDATED-STALE")+g("COALESCED-STALE");
-  return "<br><b style='font-weight:600'>Cache Cloudflare</b><br>→ "+hit+" servie"+(hit>1?"s":"")+" depuis son cache (aucun appel à MET)<br>→ "+met+" transmise"+(met>1?"s":"")+" à MET Norway"+(st?"<br>→ "+st+" version"+(st>1?"s":"")+" périmée"+(st>1?"s":"")+" (MET injoignable)":"");
- };
- const L={"MET Norway":"api.met.no · MET Norway","Cloudflare":"Cloudflare Worker"},T={fc:"prévisions détaillées",fq:"prévisions compactes",su:"lever/coucher du soleil"};
- const rows=Object.entries(MS.by||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const[h,t]=k.split("|");return "→ "+(L[h]||h)+" : "+v+" × "+(T[t]||t)});
- document.getElementById("metDet").innerHTML=(PROXY?"Serveur : "+PROXY.replace(/^https?:\/\//,"").replace(/\/$/,"")+"<br>":"Serveur : api.met.no (appel direct depuis ton navigateur)<br>")+(rows.length?rows.join("<br>"):"Aucune requête réseau pour l'instant")+cfInfo()+(PROXY&&MS.le?"<br>Dernière erreur du proxy : "+MS.le:"");
- document.getElementById("metSub").textContent=MS.hit+" servie"+(MS.hit>1?"s":"")+" par le cache · "+MS.c304+" non modifiée"+(MS.c304>1?"s":"")+" (304)"+(MS.err?" · "+MS.err+" erreur"+(MS.err>1?"s":""):"")+(PROXY&&MS.fb?" · dont "+MS.fb+" repli"+(MS.fb>1?"s":"")+" direct"+(MS.fb>1?"s":"")+" vers MET":"")+" · depuis le "+dt;
+ const T=[["fq","prévisions compactes"],["su","lever/coucher du soleil"],["fc","prévisions détaillées"]],H=MS.hby||{},B=MS.by||{},c=MS.cf||{},g=k=>c[k]||0;
+ const sec=t=>"<div style='margin-top:10px'><b style='font-weight:600'>"+t+"</b></div>";
+ const dest=h=>T.map(([k,l])=>"→ "+(h=="Cloudflare"?"Cloudflare Worker":"api.met.no · MET Norway")+" : "+(B[h+"|"+k]||0)+" × "+l);
+ let o="";
+ o+="→ "+MS.hit+" × servies par le cache web (total)<br>→ "+MS.c304+" × non modifiée (304)";
+ o+=sec("Requêtes en cache web")+T.map(([k,l])=>"→ "+(H[k]||0)+" × "+l).join("<br>");
+ o+=sec("Requêtes envoyées");
+ if(PROXY){
+  o+=dest("Cloudflare").join("<br>");
+  if(MS.fb)o+="<br>"+dest("MET Norway").filter(x=>!/ : 0 ×/.test(x)).join("<br>")+"<br>→ dont "+MS.fb+" repli"+(MS.fb>1?"s":"")+" direct"+(MS.fb>1?"s":"")+" vers MET";
+ }else o+=dest("MET Norway").join("<br>");
+ if(MS.err)o+="<br>→ "+MS.err+" erreur"+(MS.err>1?"s":"");
+ if(PROXY){
+  const hit=g("HIT")+g("COALESCED"),met=g("MISS")+g("REVALIDATED"),st=g("HIT-STALE")+g("MISS-STALE")+g("REVALIDATED-STALE")+g("COALESCED-STALE");
+  o+=sec("Cache Cloudflare")+"→ "+hit+" servie"+(hit>1?"s":"")+" depuis son cache (aucun appel à MET)<br>→ "+met+" transmise"+(met>1?"s":"")+" à MET Norway";
+  if(st)o+="<br>→ "+st+" version"+(st>1?"s":"")+" périmée"+(st>1?"s":"")+" (MET injoignable)";
+  if(MS.le)o+="<br>Dernière erreur du proxy : "+MS.le;
+ }
+ document.getElementById("metSub").textContent="Requêtes envoyées depuis le "+dt+" :";
+ document.getElementById("metDet").innerHTML=o;
 }
-function metBump(k){MS[k]++;try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow()}
-function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,fb:0,by:{},cf:{},since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
+function metHit(u){const t=metTag(u).split("|")[1];MS.hby=MS.hby||{};MS.hby[t]=(MS.hby[t]||0)+1;metBump("hit")}
+function metSave(){try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}}
+function metBump(k){MS[k]++;metSave();metShow()}
+function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,fb:0,by:{},cf:{},hby:{},since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
 metShow();
 function metTag(u){
  const host=u.indexOf(MET_DIRECT)==0?"MET Norway":"Cloudflare";
@@ -335,13 +349,13 @@ const metFetch=async(u,h)=>{
  metCount(u);
  if(!PROXY)return fetch(u,{headers:h});
  const pth=u.slice(MET.length).split("?")[0];
- try{const r=await fetch(u,{headers:h});if(r.status>=500||r.status===429){MS.le="HTTP "+r.status+" ("+pth+")";metShow()}if(r.status<500&&r.status!==429){const x=(r.headers.get("x-cache")||"").split("-")[0]+(/STALE/.test(r.headers.get("x-cache")||"")?"-STALE":"");if(x){MS.cf=MS.cf||{};MS.cf[x]=(MS.cf[x]||0)+1;metShow()}return r}}catch(e){MS.le=((e&&e.message)||"erreur réseau")+" ("+pth+")";metShow()}
+ try{const r=await fetch(u,{headers:h});if(r.status>=500||r.status===429){MS.le="HTTP "+r.status+" ("+pth+")";metSave();metShow()}if(r.status<500&&r.status!==429){const x=(r.headers.get("x-cache")||"").split("-")[0]+(/STALE/.test(r.headers.get("x-cache")||"")?"-STALE":"");if(x){MS.cf=MS.cf||{};MS.cf[x]=(MS.cf[x]||0)+1;metSave();metShow()}return r}}catch(e){MS.le=((e&&e.message)||"erreur réseau")+" ("+pth+")";metSave();metShow()}
  const du=MET_DIRECT+u.slice(MET.length);metBump("fb");metCount(du);
  return fetch(du,{headers:h});   // repli : proxy indisponible → MET Norway en direct
 };
 function metGet(u){
  const now=Date.now(),c=mem.get(u);
- if(c&&c.exp>now){metBump("hit");return Promise.resolve(c.j)}                 // encore valide : aucun appel réseau
+ if(c&&c.exp>now){metHit(u);return Promise.resolve(c.j)}                 // encore valide : aucun appel réseau
  if(infl.has(u))return infl.get(u);
  const p=(async()=>{
   const ims=!!(c&&c.lm&&!noIMS);let r;
