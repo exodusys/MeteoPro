@@ -1258,10 +1258,16 @@ async function searchOnline(q){
  drawCities();
 }
 function reindex(){for(const k in cache)delete cache[k];for(const k in QK)delete QK[k]}
-function addCity(k){
+async function addCity(k){
  const r=SR[k];if(!r)return;
  if(CITIES.some(c=>Math.abs(c.lat-r.latitude)<.02&&Math.abs(c.lon-r.longitude)<.02)){toast("Déjà dans vos villes");return}
- CITIES.push({n:r.name,c:r.country||"",lat:+r.latitude.toFixed(4),lon:+r.longitude.toFixed(4),alt:r.elevation!=null?Math.round(r.elevation):null,tz:r.timezone||"UTC"});
+ /* centre de la ville selon OpenStreetMap (même source que « Ma position » : mêmes coordonnées = même météo).
+    Garde-fou : si le centre trouvé est à plus de 5 km du point d'Open-Meteo (ex. hameau rattaché à une grande commune), on garde le point d'Open-Meteo. */
+ let lat=+r.latitude.toFixed(4),lon=+r.longitude.toFixed(4);
+ const pl=await placeOf(r.latitude,r.longitude);
+ if(pl&&Math.hypot((pl.lat-r.latitude)*111.2,(pl.lon-r.longitude)*111.2*Math.cos(r.latitude*Math.PI/180))<5){lat=pl.lat;lon=pl.lon}
+ if(CITIES.some(c=>Math.abs(c.lat-lat)<.02&&Math.abs(c.lon-lon)<.02)){toast("Déjà dans vos villes");return}
+ CITIES.push({n:r.name,c:r.country||"",lat,lon,alt:r.elevation!=null?Math.round(r.elevation):null,tz:r.timezone||"UTC"});
  save();$("search").value="";SR=[];SRs="idle";drawCities();loadCities();toast("＋ "+r.name+" ajoutée");
 }
 function delCity(i){
@@ -1289,18 +1295,35 @@ async function refresh(force){
   else toast("Actualisation impossible");
  }
 }
+/* Position GPS → village / ville la plus proche. La météo est ensuite demandée pour le CENTRE de ce lieu (pas pour le GPS) :
+   la position GPS n'est jamais envoyée pour la météo, et tous les habitants du même lieu partagent la même requête / le même cache.
+   Le nom est cherché via le Worker (coordonnées arrondies à ~1 km, cache 7 jours) ; repli direct sur OpenStreetMap Nominatim. */
+async function placeOf(lat,lon){
+ const q="lat="+lat.toFixed(2)+"&lon="+lon.toFixed(2);
+ const tmo=ms=>{const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal};
+ let r=null;
+ if(PROXY){try{const x=await fetch(PROXY+"reverse?"+q,{headers:{Accept:"application/json"},signal:tmo(4000)});if(x.ok)r=await x.json()}catch(e){}}
+ if(!r||!r.n||!isFinite(+r.lat)){
+  try{const x=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=fr&"+q,{signal:tmo(5000)});
+   if(x.ok){const j=await x.json(),a=j.address||{};r={n:a.village||a.town||a.city||a.municipality||a.hamlet||a.suburb||a.county||"",c:a.country||"",lat:j.lat,lon:j.lon}}}catch(e){}
+ }
+ return r&&r.n&&isFinite(+r.lat)&&isFinite(+r.lon)?{n:r.n,c:r.c||"",lat:+(+r.lat).toFixed(3),lon:+(+r.lon).toFixed(3)}:null;
+}
 function locate(){
  if(!navigator.geolocation){toast("Géolocalisation indisponible");return}
  toast("Localisation en cours…");
- navigator.geolocation.getCurrentPosition(p=>{
-  const g={n:"Ma position",c:"Géolocalisation",lat:+p.coords.latitude.toFixed(4),lon:+p.coords.longitude.toFixed(4),alt:null,tz:Intl.DateTimeFormat().resolvedOptions().timeZone,geo:true};
-  g.c=g.lat.toFixed(2)+"°, "+g.lon.toFixed(2)+"°";
+ navigator.geolocation.getCurrentPosition(async p=>{
+  const lat=+p.coords.latitude.toFixed(4),lon=+p.coords.longitude.toFixed(4);
   const k=CITIES.findIndex(c=>c.geo);
-  if(k>=0){const o=CITIES[k],dl=(g.lat-o.lat)*111.2,dn=(g.lon-o.lon)*111.2*Math.cos(g.lat*Math.PI/180);
-   if(Math.hypot(dl,dn)<1){S.city=k;save();go("today");refresh(false);toast("📍 Ma position");return}}   // < 1 km : on garde les données en cache
-  if(k>=0)CITIES.splice(k,1);
+  if(k>=0&&CITIES[k].named){const o=CITIES[k],dl=(lat-o.lat)*111.2,dn=(lon-o.lon)*111.2*Math.cos(lat*Math.PI/180);
+   if(Math.hypot(dl,dn)<1){S.city=k;save();go("today");refresh(false);toast("📍 "+o.n);return}}   // < 1 km du centre déjà enregistré : on garde les données en cache
+  const pl=await placeOf(lat,lon);
+  const g={n:pl?pl.n:"Ma position",c:pl?pl.c:lat.toFixed(2)+"°, "+lon.toFixed(2)+"°",lat:pl?pl.lat:lat,lon:pl?pl.lon:lon,alt:null,tz:Intl.DateTimeFormat().resolvedOptions().timeZone,geo:true,named:!!pl};
+  const k2=CITIES.findIndex(c=>c.geo);
+  if(k2>=0&&CITIES[k2].lat===g.lat&&CITIES[k2].lon===g.lon){S.city=k2;save();go("today");refresh(false);toast("📍 "+CITIES[k2].n);return}   // même lieu
+  if(k2>=0)CITIES.splice(k2,1);
   fastSwap();CITIES.unshift(g);reindex();S.city=0;RAW=null;D=null;
-  save();go("today");refresh(false);toast("📍 Ma position");
+  save();go("today");refresh(false);toast("📍 "+g.n);
  },e=>toast(e.code==1?"Autorisation de localisation refusée":"Position introuvable"),{timeout:10000,maximumAge:600000});
 }
 function pickCity(i){if(i!==S.city)fastSwap();S.city=i;save();go("today");refresh(false);toast("📍 "+CITIES[i].n)}
