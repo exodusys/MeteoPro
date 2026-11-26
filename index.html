@@ -211,6 +211,8 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
     <div class="row">Alertes météo<div class="sw on" data-s="alerts"></div></div>
     <div class="row">Fond animé selon la météo<div class="sw on" data-s="dyn"></div></div>
     <div class="row">Animation météo réaliste<div class="sw on" data-s="anim"></div></div>
+    <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0">Requêtes envoyées à MET Norway<div style="font-size:11.5px;color:var(--mut);margin-top:3px;font-weight:400;line-height:1.35" id="metSub">—</div></div><b id="metN" style="font:700 22px Inter">0</b></div>
+    <div class="row">Compteur de requêtes<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetMetStats()">Réinitialiser</button></div>
     <div class="row">Villes enregistrées<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetCities()">Réinitialiser</button></div>
     <div class="row">Résumé quotidien<div class="sw" data-s="daily"></div></div>
   </div>
@@ -277,20 +279,32 @@ function mcSave(){clearTimeout(mcT);mcT=setTimeout(()=>{
  while(ents.length){try{localStorage.setItem(MC_KEY,JSON.stringify(Object.fromEntries(ents)));return}catch(e){ents.pop()}}
 },50)}
 function expOf(r,now){const e=Date.parse(r.headers.get("expires")||"");return isFinite(e)?Math.max(e,now+60e3):now+10*60e3}
+let MS={n:0,c304:0,hit:0,err:0,since:Date.now()};
+try{const o=JSON.parse(localStorage.getItem("meteoMetStats")||"null");if(o&&typeof o.n=="number")MS=Object.assign(MS,o)}catch(e){}
+function metShow(){
+ const n=document.getElementById("metN");if(!n)return;
+ n.textContent=MS.n;
+ const d=new Date(MS.since),dt=d.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+ document.getElementById("metSub").textContent=MS.hit+" servie"+(MS.hit>1?"s":"")+" par le cache · "+MS.c304+" non modifiée"+(MS.c304>1?"s":"")+" (304)"+(MS.err?" · "+MS.err+" erreur"+(MS.err>1?"s":""):"")+" · depuis le "+dt;
+}
+function metBump(k){MS[k]++;try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow()}
+function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
+metShow();
+const metFetch=(u,h)=>{metBump("n");return fetch(u,{headers:h})};
 function metGet(u){
  const now=Date.now(),c=mem.get(u);
- if(c&&c.exp>now)return Promise.resolve(c.j);                 // encore valide : aucun appel réseau
+ if(c&&c.exp>now){metBump("hit");return Promise.resolve(c.j)}                 // encore valide : aucun appel réseau
  if(infl.has(u))return infl.get(u);
  const p=(async()=>{
   const ims=!!(c&&c.lm&&!noIMS);let r;
-  try{r=await fetch(u,{headers:ims?{Accept:"application/json","If-Modified-Since":c.lm}:{Accept:"application/json"}})}
+  try{r=await metFetch(u,ims?{Accept:"application/json","If-Modified-Since":c.lm}:{Accept:"application/json"})}
   catch(e){
-   if(ims){noIMS=true;try{r=await fetch(u,{headers:{Accept:"application/json"}})}catch(e2){if(c)return c.j;throw e2}}   // en-tête refusé par le navigateur
+   if(ims){noIMS=true;try{r=await metFetch(u,{Accept:"application/json"})}catch(e2){if(c)return c.j;throw e2}}   // en-tête refusé par le navigateur
    else{if(c)return c.j;throw e}
   }
   const t=Date.now();
-  if(r.status===304&&c){c.exp=expOf(r,t);c.at=t;mcSave();return c.j}
-  if(!r.ok){if(c&&(r.status>=500||r.status===429))return c.j;throw new Error("HTTP "+r.status)}
+  if(r.status===304&&c){metBump("c304");c.exp=expOf(r,t);c.at=t;mcSave();return c.j}
+  if(!r.ok){metBump("err");if(c&&(r.status>=500||r.status===429))return c.j;throw new Error("HTTP "+r.status)}
   const j=await r.json();mem.set(u,{j,exp:expOf(r,t),lm:r.headers.get("last-modified"),at:t});mcSave();return j;
  })().finally(()=>infl.delete(u));
  infl.set(u,p);return p;
@@ -758,7 +772,6 @@ const FX=(()=>{
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
   drawFog(t,rI,sI);
   drawStorm(t);
-  drawDrops(dt,rI);
   drawCardFx(dt,t,rI,sI);
  }
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
