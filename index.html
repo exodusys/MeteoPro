@@ -258,7 +258,11 @@ const MONTHS=["janvier","février","mars","avril","mai","juin","juillet","août"
 const p2=n=>String(n).padStart(2,"0");
 
 /* ================= MET NORWAY ================= */
-const MET="https://api.met.no/weatherapi/";
+const MET_DIRECT="https://api.met.no/weatherapi/";
+/* Proxy Cloudflare Worker (cache partagé + User-Agent identifiant). Laisser vide = appels directs à MET Norway.
+   Exemple : const PROXY="https://meteopro-proxy.TON-COMPTE.workers.dev/"; */
+const PROXY="";
+const MET=PROXY||MET_DIRECT;
 const TTL=10*60*1000;
 const cache={};      // requêtes en cache (promesses)
 let RAW=null,D=null; // données brutes de la ville affichée / données calculées
@@ -306,7 +310,12 @@ function metShow(){
 function metBump(k){MS[k]++;try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow()}
 function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
 metShow();
-const metFetch=(u,h)=>{metBump("n");return fetch(u,{headers:h})};
+const metFetch=async(u,h)=>{
+ metBump("n");
+ if(!PROXY)return fetch(u,{headers:h});
+ try{const r=await fetch(u,{headers:h});if(r.status<500&&r.status!==429)return r}catch(e){}
+ return fetch(MET_DIRECT+u.slice(MET.length),{headers:h});   // repli : proxy indisponible → MET Norway en direct
+};
 function metGet(u){
  const now=Date.now(),c=mem.get(u);
  if(c&&c.exp>now){metBump("hit");return Promise.resolve(c.j)}                 // encore valide : aucun appel réseau
