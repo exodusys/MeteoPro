@@ -210,7 +210,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
     <div class="row">Alertes météo<div class="sw on" data-s="alerts"></div></div>
     <div class="row">Fond animé selon la météo<div class="sw on" data-s="dyn"></div></div>
     <div class="row">Animation météo réaliste<div class="sw on" data-s="anim"></div></div>
-    <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0">Requêtes envoyées à MET Norway<div style="font-size:11.5px;color:var(--mut);margin-top:3px;font-weight:400;line-height:1.35" id="metSub">—</div></div><b id="metN" style="font:700 22px Inter">0</b></div>
+    <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0"><span id="metLbl">Requêtes envoyées à MET Norway</span><div style="font-size:11.5px;color:var(--mut);margin-top:3px;font-weight:400;line-height:1.35" id="metSub">—</div></div><b id="metN" style="font:700 22px Inter">0</b></div>
     <div class="row">Compteur de requêtes<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetMetStats()">Réinitialiser</button></div>
     <div class="row">Villes enregistrées<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetCities()">Réinitialiser</button></div>
     <div class="row">Résumé quotidien<div class="sw" data-s="daily"></div></div>
@@ -299,21 +299,23 @@ function expOf(r,now,u){
  const e=Date.parse(r.headers.get("expires")||"");
  return Math.max(isFinite(e)?e:0,now+minTtl(u))+Math.random()*3*60e3;
 }
-let MS={n:0,c304:0,hit:0,err:0,since:Date.now()};
+let MS={n:0,c304:0,hit:0,err:0,fb:0,since:Date.now()};
 try{const o=JSON.parse(localStorage.getItem("meteoMetStats")||"null");if(o&&typeof o.n=="number")MS=Object.assign(MS,o)}catch(e){}
 function metShow(){
  const n=document.getElementById("metN");if(!n)return;
+ document.getElementById("metLbl").textContent=PROXY?"Requêtes envoyées à Cloudflare (proxy)":"Requêtes envoyées à MET Norway (direct)";
  n.textContent=MS.n;
  const d=new Date(MS.since),dt=d.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
- document.getElementById("metSub").textContent=MS.hit+" servie"+(MS.hit>1?"s":"")+" par le cache · "+MS.c304+" non modifiée"+(MS.c304>1?"s":"")+" (304)"+(MS.err?" · "+MS.err+" erreur"+(MS.err>1?"s":""):"")+" · depuis le "+dt;
+ document.getElementById("metSub").textContent=MS.hit+" servie"+(MS.hit>1?"s":"")+" par le cache · "+MS.c304+" non modifiée"+(MS.c304>1?"s":"")+" (304)"+(MS.err?" · "+MS.err+" erreur"+(MS.err>1?"s":""):"")+(PROXY&&MS.fb?" · dont "+MS.fb+" repli"+(MS.fb>1?"s":"")+" direct"+(MS.fb>1?"s":"")+" vers MET":"")+" · depuis le "+dt;
 }
 function metBump(k){MS[k]++;try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow()}
-function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
+function resetMetStats(){MS={n:0,c304:0,hit:0,err:0,fb:0,since:Date.now()};try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow();toast("Compteur remis à zéro")}
 metShow();
 const metFetch=async(u,h)=>{
  metBump("n");
  if(!PROXY)return fetch(u,{headers:h});
  try{const r=await fetch(u,{headers:h});if(r.status<500&&r.status!==429)return r}catch(e){}
+ metBump("fb");
  return fetch(MET_DIRECT+u.slice(MET.length),{headers:h});   // repli : proxy indisponible → MET Norway en direct
 };
 function metGet(u){
