@@ -623,7 +623,7 @@ const FX=(()=>{
   if(st.sunF==null)return;
   const f=st.sunF,el=Math.sin(f*Math.PI),x=W*(.14+.72*f),y=H*(.30-.19*el);
   let v=1-st.cl/100*.9;if(PRECIP.includes(st.c)||st.c=="fog")v*=.12;if(v<.03)return;
-  const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(236-66*warm),cb=Math.round(165-80*warm),col=`${cr},${cg},${cb}`;
+  const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(244-72*warm),cb=Math.round(214-124*warm),col=`${cr},${cg},${cb}`;
   /* 1. voile de lumière : le ciel proche du soleil est délavé, presque blanc */
   const R1=Math.max(W,H)*.58,g=ctx.createRadialGradient(x,y,0,x,y,R1);
   g.addColorStop(0,`rgba(255,255,255,${.7*v*sc})`);g.addColorStop(.1,`rgba(255,251,242,${.4*v*(1+(sc-1)*1.4)})`);g.addColorStop(.32,`rgba(${col},${.13*v})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -634,11 +634,11 @@ const FX=(()=>{
    ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle=hg;ctx.fillRect(0,0,W,H);ctx.restore()}
   /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
   const rc=Math.min(27,W*.068);
-  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,253,236,${.95*v})`);c2.addColorStop(.22,`rgba(255,245,212,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
+  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
   /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
   for(let q=0;q<8;q++){
    const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
-   gr.addColorStop(0,`rgba(255,251,225,${v})`);gr.addColorStop(.5,`rgba(255,246,208,${.8*v})`);gr.addColorStop(1,"rgba(255,240,195,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
+   gr.addColorStop(0,`rgba(255,255,253,${v})`);gr.addColorStop(.5,`rgba(255,254,248,${.8*v})`);gr.addColorStop(1,"rgba(255,248,232,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
   }
   /* 5. reflets d'objectif : disques pâles à bord légèrement plus clair, alignés du soleil vers le centre de l'écran, + une traînée bleutée */
   const gv=v*(1-ss_(.1,.55,st.cl/100))*(1-Math.min(1,st.dk*1.6));
@@ -906,8 +906,10 @@ const FX=(()=>{
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/(performance.now()<fastUntil?.6:2.8));sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
+  ctx.save();ctx.translate(0,-Math.max(0,window.scrollY||0));   // soleil, lune, étoiles et nuages défilent avec les dalles
   drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon();
   drawClouds(dt,t);
+  ctx.restore();
   measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}else{rain.length=0;spl.length=0}
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
   drawFog(t,rI,sI);
