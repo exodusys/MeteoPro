@@ -277,7 +277,24 @@ function mcSave(){clearTimeout(mcT);mcT=setTimeout(()=>{
  const ents=[...mem.entries()].sort((a,b)=>b[1].at-a[1].at).slice(0,MC_MAX);
  while(ents.length){try{localStorage.setItem(MC_KEY,JSON.stringify(Object.fromEntries(ents)));return}catch(e){ents.pop()}}
 },50)}
-function expOf(r,now){const e=Date.parse(r.headers.get("expires")||"");return isFinite(e)?Math.max(e,now+60e3):now+10*60e3}
+/* Durées minimales de cache imposées par MET Norway pour Locationforecast (conditions du 5 nov. 2026) :
+   région nordique = 30 min, reste du monde = 3 h. La zone nordique est volontairement restreinte (Norvège, Suède, Finlande,
+   Danemark du nord) : en cas de doute on applique la durée la plus longue. Une petite marge aléatoire évite les requêtes synchronisées. */
+function nordic(lat,lon){
+ if(lon<4.5||lon>31.3||lat<55.3||lat>71.5)return false;
+ if(lat<59.6&&lon>20.5)return false;      // Baltique, Pologne, pays baltes
+ if(lat<61&&lon>26.5)return false;        // Saint-Pétersbourg et environs
+ return true;
+}
+function minTtl(u){
+ if(u.indexOf("locationforecast")<0)return 60e3;
+ const m=/[?&]lat=(-?[\d.]+)&lon=(-?[\d.]+)/.exec(u);
+ return m&&nordic(+m[1],+m[2])?30*60e3:3*3600e3;
+}
+function expOf(r,now,u){
+ const e=Date.parse(r.headers.get("expires")||"");
+ return Math.max(isFinite(e)?e:0,now+minTtl(u))+Math.random()*3*60e3;
+}
 let MS={n:0,c304:0,hit:0,err:0,since:Date.now()};
 try{const o=JSON.parse(localStorage.getItem("meteoMetStats")||"null");if(o&&typeof o.n=="number")MS=Object.assign(MS,o)}catch(e){}
 function metShow(){
@@ -302,9 +319,9 @@ function metGet(u){
    else{if(c)return c.j;throw e}
   }
   const t=Date.now();
-  if(r.status===304&&c){metBump("c304");c.exp=expOf(r,t);c.at=t;mcSave();return c.j}
+  if(r.status===304&&c){metBump("c304");c.exp=expOf(r,t,u);c.at=t;mcSave();return c.j}
   if(!r.ok){metBump("err");if(c&&(r.status>=500||r.status===429))return c.j;throw new Error("HTTP "+r.status)}
-  const j=await r.json();mem.set(u,{j,exp:expOf(r,t),lm:r.headers.get("last-modified"),at:t});mcSave();return j;
+  const j=await r.json();mem.set(u,{j,exp:expOf(r,t,u),lm:r.headers.get("last-modified"),at:t});mcSave();return j;
  })().finally(()=>infl.delete(u));
  infl.set(u,p);return p;
 }
