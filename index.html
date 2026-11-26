@@ -275,7 +275,8 @@ async function getJSON(u){const r=await fetch(u,{headers:{Accept:"application/js
    • If-Modified-Since envoyé quand Last-Modified est connu (304 = on garde les données)
    • coordonnées arrondies à 3 décimales (~110 m) : un léger déplacement GPS ne relance pas d'appel
    • aucune actualisation quand l'appli est en arrière-plan                                          */
-const MC_KEY="meteoMetCache",MC_MAX=10,mem=new Map(),infl=new Map(),parsedC=new WeakMap();let noIMS=false,mcT=0;
+try{localStorage.removeItem("meteoMetCache")}catch(e){}
+const MC_KEY="meteoMetCache2",MC_MAX=10,mem=new Map(),infl=new Map(),parsedC=new WeakMap();let noIMS=false,mcT=0;
 try{const o=JSON.parse(localStorage.getItem(MC_KEY)||"{}");for(const u in o)if(u.startsWith(MET))mem.set(u,o[u])}catch(e){}
 function mcSave(){clearTimeout(mcT);mcT=setTimeout(()=>{
  const ents=[...mem.entries()].sort((a,b)=>b[1].at-a[1].at).slice(0,MC_MAX);
@@ -312,7 +313,7 @@ function metShow(){
  };
  const L={"MET Norway":"api.met.no · MET Norway","Cloudflare":"Cloudflare Worker"},T={fc:"prévisions détaillées",fq:"prévisions compactes",su:"lever/coucher du soleil"};
  const rows=Object.entries(MS.by||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const[h,t]=k.split("|");return "→ "+(L[h]||h)+" : "+v+" × "+(T[t]||t)});
- document.getElementById("metDet").innerHTML=(PROXY?"Serveur : "+PROXY.replace(/^https?:\/\//,"").replace(/\/$/,"")+"<br>":"Serveur : api.met.no (appel direct depuis ton navigateur)<br>")+(rows.length?rows.join("<br>"):"Aucune requête réseau pour l'instant")+cfInfo();
+ document.getElementById("metDet").innerHTML=(PROXY?"Serveur : "+PROXY.replace(/^https?:\/\//,"").replace(/\/$/,"")+"<br>":"Serveur : api.met.no (appel direct depuis ton navigateur)<br>")+(rows.length?rows.join("<br>"):"Aucune requête réseau pour l'instant")+cfInfo()+(PROXY&&MS.le?"<br>Dernière erreur du proxy : "+MS.le:"");
  document.getElementById("metSub").textContent=MS.hit+" servie"+(MS.hit>1?"s":"")+" par le cache · "+MS.c304+" non modifiée"+(MS.c304>1?"s":"")+" (304)"+(MS.err?" · "+MS.err+" erreur"+(MS.err>1?"s":""):"")+(PROXY&&MS.fb?" · dont "+MS.fb+" repli"+(MS.fb>1?"s":"")+" direct"+(MS.fb>1?"s":"")+" vers MET":"")+" · depuis le "+dt;
 }
 function metBump(k){MS[k]++;try{localStorage.setItem("meteoMetStats",JSON.stringify(MS))}catch(e){}metShow()}
@@ -327,7 +328,8 @@ function metCount(u){const k=metTag(u);MS.by=MS.by||{};MS.by[k]=(MS.by[k]||0)+1;
 const metFetch=async(u,h)=>{
  metCount(u);
  if(!PROXY)return fetch(u,{headers:h});
- try{const r=await fetch(u,{headers:h});if(r.status<500&&r.status!==429){const x=(r.headers.get("x-cache")||"").split("-")[0]+(/STALE/.test(r.headers.get("x-cache")||"")?"-STALE":"");if(x){MS.cf=MS.cf||{};MS.cf[x]=(MS.cf[x]||0)+1;metShow()}return r}}catch(e){}
+ const pth=u.slice(MET.length).split("?")[0];
+ try{const r=await fetch(u,{headers:h});if(r.status>=500||r.status===429){MS.le="HTTP "+r.status+" ("+pth+")";metShow()}if(r.status<500&&r.status!==429){const x=(r.headers.get("x-cache")||"").split("-")[0]+(/STALE/.test(r.headers.get("x-cache")||"")?"-STALE":"");if(x){MS.cf=MS.cf||{};MS.cf[x]=(MS.cf[x]||0)+1;metShow()}return r}}catch(e){MS.le=((e&&e.message)||"erreur réseau")+" ("+pth+")";metShow()}
  const du=MET_DIRECT+u.slice(MET.length);metBump("fb");metCount(du);
  return fetch(du,{headers:h});   // repli : proxy indisponible → MET Norway en direct
 };
