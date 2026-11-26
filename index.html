@@ -503,7 +503,7 @@ const FX=(()=>{
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
- let sunSp=null,moonTx=null,moonSp=null,moonKey="",fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
+ let moonTx=null,moonSp=null,moonKey="",fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
  const R=(a=0,b=1)=>a+Math.random()*(b-a);
  const PI2=Math.PI*2,WETC=["rain","shower","storm","sleet"],PRECIP=["rain","shower","storm","sleet","snow"];
  const srand=s=>()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
@@ -539,7 +539,7 @@ const FX=(()=>{
    for(const[cx,cy,a,b,rt,d]of MARIA){const dx=X-cx,dy=Y-cy,c=Math.cos(rt),s=Math.sin(rt),uu=(dx*c+dy*s)/a,ww=(-dx*s+dy*c)/b;m=Math.max(m,d*Math.exp(-(uu*uu+ww*ww)))}
    m=sm01((m+(fb((u*1.3)%1,v)-.5)*.5+(n2((u*1.7)%1,v)-.5)*.2-.28)/.32);
    const i=py*N+px;Mk[i]=m;
-   const hl=.8+(fb(u,v)-.5)*.2+(n2(u,v)-.5)*.1+(n4(u,v)-.5)*.1+(n3(u,v)-.5)*.06,ma=.65+(fb((u+.4)%1,v)-.5)*.16+(n3(u,v)-.5)*.09+(n4(u,v)-.5)*.05;
+   const hl=.8+(fb(u,v)-.5)*.2+(n2(u,v)-.5)*.1+(n4(u,v)-.5)*.1+(n3(u,v)-.5)*.06,ma=.72+(fb((u+.4)%1,v)-.5)*.16+(n3(u,v)-.5)*.09+(n4(u,v)-.5)*.05;
    Al[i]=hl+(ma-hl)*m;Hh[i]=(n5(u,v)-.5)*.012*(1-m*.7)+(n3(u,v)-.5)*.004;
   }
   const crater=(X,Y,rad,fresh,floorDark)=>{ // cuvette + rebord + pic central ; rayon rad en unités du disque
@@ -623,7 +623,7 @@ const FX=(()=>{
   if(st.sunF==null)return;
   const f=st.sunF,el=Math.sin(f*Math.PI),x=W*(.14+.72*f),y=H*(.30-.19*el);
   let v=1-st.cl/100*.9;if(PRECIP.includes(st.c)||st.c=="fog")v*=.12;if(v<.03)return;
-  const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(244-72*warm),cb=Math.round(214-124*warm),col=`${cr},${cg},${cb}`;
+  const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(236-66*warm),cb=Math.round(165-80*warm),col=`${cr},${cg},${cb}`;
   /* 1. voile de lumière : le ciel proche du soleil est délavé, presque blanc */
   const R1=Math.max(W,H)*.58,g=ctx.createRadialGradient(x,y,0,x,y,R1);
   g.addColorStop(0,`rgba(255,255,255,${.7*v*sc})`);g.addColorStop(.1,`rgba(255,251,242,${.4*v*(1+(sc-1)*1.4)})`);g.addColorStop(.32,`rgba(${col},${.13*v})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -632,15 +632,14 @@ const FX=(()=>{
   if(ha>.02){const hr=W*.56,hg=ctx.createRadialGradient(x,y,hr*.8,x,y,hr*1.24);
    hg.addColorStop(0,"rgba(255,170,120,0)");hg.addColorStop(.2,`rgba(255,190,130,${.07*ha})`);hg.addColorStop(.42,`rgba(255,236,205,${.12*ha})`);hg.addColorStop(.62,`rgba(190,238,205,${.08*ha})`);hg.addColorStop(.82,`rgba(150,200,255,${.06*ha})`);hg.addColorStop(1,"rgba(150,200,255,0)");
    ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle=hg;ctx.fillRect(0,0,W,H);ctx.restore()}
-  /* 4. disque solaire hyper réaliste : cœur surexposé à bord irrégulier, bloom en loi de puissance, dominante bleutée en périphérie (sprite précalculé, fixe) */
-  const rc=Math.min(27,W*.068),D=Math.round(rc*22);
-  if(!sunSp||sunSp.width!==D){const S=D,c=off(S,S),g2=c.getContext("2d"),im=g2.createImageData(S,S),Q=im.data,h=S/2,sm=(a,b,x)=>{x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)};
-   for(let j=0;j<S;j++)for(let i=0;i<S;i++){const dx=i+.5-h,dy=j+.5-h,u=Math.hypot(dx,dy)/(S/22/2*2/2*1)/ (1) ;const uu=Math.hypot(dx,dy)/(S/22),th=Math.atan2(dy,dx),
-     mo=1+.06*Math.sin(3*th+1)+.04*Math.sin(5*th+2.1)+.025*Math.sin(8*th+.4),w=uu/mo,
-     core=Math.exp(-Math.pow(w/.8,2.6))*1.15,bl=.78/(1+Math.pow(uu/.95,2.1)),wd=.2/(1+Math.pow(uu/3.6,1.7)),fade=1-sm(6,11,uu),I=(core+bl+wd)*fade,o=(j*S+i)*4,t2=sm(1,5.5,uu);
-     Q[o]=255-45*t2;Q[o+1]=253-22*t2;Q[o+2]=248+7*t2;Q[o+3]=255*Math.min(1,I)}
-   g2.putImageData(im,0,0);sunSp=c}
-  ctx.globalAlpha=Math.min(1,v);ctx.drawImage(sunSp,x-D/2,y-D/2);ctx.globalAlpha=1;
+  /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
+  const rc=Math.min(27,W*.068);
+  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,253,236,${.95*v})`);c2.addColorStop(.22,`rgba(255,245,212,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
+  /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
+  for(let q=0;q<8;q++){
+   const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
+   gr.addColorStop(0,`rgba(255,251,225,${v})`);gr.addColorStop(.5,`rgba(255,246,208,${.8*v})`);gr.addColorStop(1,"rgba(255,240,195,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
+  }
   /* 5. reflets d'objectif : disques pâles à bord légèrement plus clair, alignés du soleil vers le centre de l'écran, + une traînée bleutée */
   const gv=v*(1-ss_(.1,.55,st.cl/100))*(1-Math.min(1,st.dk*1.6));
   if(gv>.05){ctx.save();ctx.globalCompositeOperation="lighter";const cx=W*.5,cy=H*.52;
