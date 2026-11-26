@@ -142,7 +142,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 <!-- AUJOURD'HUI -->
 <section class="view on" id="v-today">
   <div class="top">
-    <div><div class="loc">📍 <span id="cityName"></span></div><div class="date" id="dateStr"></div></div>
+    <div><div class="loc">📍 <span id="cityName"></span></div><div class="date" id="citySub" style="display:none"></div><div class="date" id="dateStr"></div></div>
   </div>
   <div class="card" id="status" style="display:none;text-align:center"></div>
   <div class="hero">
@@ -249,6 +249,12 @@ try{Object.assign(S,JSON.parse(localStorage.getItem("meteoPro")||"{}"))}catch(e)
 let CITIES=Array.isArray(S.list)&&S.list.length?S.list:DEFAULTS.map(c=>({...c}));S.list=CITIES;
 if(!CITIES[S.city])S.city=0;
 if(S.anim===null)S.anim=!(matchMedia("(prefers-reduced-motion: reduce)").matches);
+/* Position GPS : « Ma position » en titre, la ville ou le village en dessous. */
+const geoSub=C=>C.named?C.n+", "+C.c:C.c;
+function setCityName(C){
+ if(C.geo){$("cityName").textContent="Ma position";$("citySub").textContent=geoSub(C);$("citySub").style.display=""}
+ else{$("cityName").textContent=C.n+", "+C.c;$("citySub").style.display="none"}
+}
 const save=()=>{try{localStorage.setItem("meteoPro",JSON.stringify(S))}catch(e){}};
 function rng(s){return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646}}
 const $=id=>document.getElementById(id);
@@ -962,7 +968,7 @@ function render(){
  document.body.className=bcls+(document.body.classList.contains("nofade")?" nofade":"")+(document.body.classList.contains("quick")?" quick":"");
  const dk=darkness(now,sun,cur);SKYS={dk,c:cur.c,cl:cur.cl};updateSky();
  if(document.body.classList.contains("nofade"))requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.remove("nofade")));
- $("cityName").textContent=C.n+", "+C.c;
+ setCityName(C);
  $("dateStr").textContent=DAYSL[wd(np)]+" "+np.d+" "+MONTHS[np.mo-1]+" · "+fmtHM(np.H,np.mi);
  $("hIco").innerHTML=ico(cur.c,cur.n);$("hT").textContent=T(cur.t)+"°";$("hC").textContent=cur.n&&cur.c=="clear"?"Ciel dégagé":COND[cur.c][0];
  $("hHL").textContent="Max "+T(days[0].hi)+"° · Min "+T(days[0].lo)+"°";
@@ -1234,9 +1240,9 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 let SR=[],SRs="idle",srT;
 function drawCities(){
  const q=($("search").value||"").trim().toLowerCase();
- let h=CITIES.map((c,i)=>({c,i})).filter(o=>o.c.n.toLowerCase().includes(q)||o.c.c.toLowerCase().includes(q)).map(({c,i})=>{
+ let h=CITIES.map((c,i)=>({c,i})).filter(o=>o.c.n.toLowerCase().includes(q)||o.c.c.toLowerCase().includes(q)||(o.c.geo&&"ma position".includes(q))).map(({c,i})=>{
   const k=QK[i]?quick(QK[i]):null;
-  return`<div class="city ${i==S.city?"cur":""}" onclick="pickCity(${i})"><div><h3>${i==S.city?"📍 ":""}${esc(c.n)}</h3><small>${esc(c.c)}${k?" · "+COND[k.c][0]:""}</small><br><small>${k?"Max "+T(k.hi)+"° Min "+T(k.lo)+"°":"Chargement…"}</small></div><div style="display:flex;align-items:center;gap:6px"><div class="r"><div style="font-size:26px">${k?ico(k.c,k.n):""}</div><b>${k?T(k.t)+"°":"…"}</b></div><button class="x" title="Supprimer" onclick="event.stopPropagation();delCity(${i})">✕</button></div></div>`}).join("");
+  return`<div class="city ${i==S.city?"cur":""}" onclick="pickCity(${i})"><div><h3>${i==S.city?"📍 ":""}${c.geo?"Ma position":esc(c.n)}</h3>${c.geo?`<small>${esc(geoSub(c))}</small><br><small>${k?COND[k.c][0]+" · Max "+T(k.hi)+"° Min "+T(k.lo)+"°":"Chargement…"}</small>`:`<small>${esc(c.c)}${k?" · "+COND[k.c][0]:""}</small><br><small>${k?"Max "+T(k.hi)+"° Min "+T(k.lo)+"°":"Chargement…"}</small>`}</div><div style="display:flex;align-items:center;gap:6px"><div class="r"><div style="font-size:26px">${k?ico(k.c,k.n):""}</div><b>${k?T(k.t)+"°":"…"}</b></div><button class="x" title="Supprimer" onclick="event.stopPropagation();delCity(${i})">✕</button></div></div>`}).join("");
  if(!h&&q.length<2)h='<div class="note">Aucune ville enregistrée</div>';
  if(q.length>=2){
   h+='<div class="ct" style="margin:18px 4px 10px">'+ci("globe")+' Ajouter une ville</div>';
@@ -1285,7 +1291,7 @@ let swapPend=false;
 function fastSwap(){swapPend=true;document.body.classList.add("quick");FX.fast(5000);setTimeout(()=>{swapPend=false;document.body.classList.remove("quick")},9000)}
 async function refresh(force){
  const ci=S.city;
- if(!D||D.C!==CITIES[ci]){ld(true);status("Chargement des données MET Norway…");$("cityName").textContent=CITIES[ci].n+", "+CITIES[ci].c}
+ if(!D||D.C!==CITIES[ci]){ld(true);status("Chargement des données MET Norway…");setCityName(CITIES[ci])}
  try{
   const raw=await fetchFull(ci);if(raw.C!==CITIES[S.city])return;
   RAW=raw;render();status("");ld(false);if(force)toast("Données actualisées");if(swapPend){swapPend=false;setTimeout(()=>document.body.classList.remove("quick"),1200)}
@@ -1302,9 +1308,9 @@ async function placeOf(lat,lon){
  const q="lat="+lat.toFixed(2)+"&lon="+lon.toFixed(2);
  const tmo=ms=>{const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal};
  let r=null;
- if(PROXY){try{const x=await fetch(PROXY+"reverse?"+q,{headers:{Accept:"application/json"},signal:tmo(4000)});if(x.ok)r=await x.json()}catch(e){}}
+ if(PROXY){try{const x=await fetch(PROXY+"reverse?"+q,{headers:{Accept:"application/json"},signal:tmo(2500)});if(x.ok)r=await x.json()}catch(e){}}
  if(!r||!r.n||!isFinite(+r.lat)){
-  try{const x=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=fr&"+q,{signal:tmo(5000)});
+  try{const x=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=fr&"+q,{signal:tmo(3000)});
    if(x.ok){const j=await x.json(),a=j.address||{};r={n:a.village||a.town||a.city||a.municipality||a.hamlet||a.suburb||a.county||"",c:a.country||"",lat:j.lat,lon:j.lon}}}catch(e){}
  }
  return r&&r.n&&isFinite(+r.lat)&&isFinite(+r.lon)?{n:r.n,c:r.c||"",lat:+(+r.lat).toFixed(3),lon:+(+r.lon).toFixed(3)}:null;
@@ -1317,7 +1323,8 @@ function locate(){
   const k=CITIES.findIndex(c=>c.geo);
   if(k>=0&&CITIES[k].named){const o=CITIES[k],dl=(lat-o.lat)*111.2,dn=(lon-o.lon)*111.2*Math.cos(lat*Math.PI/180);
    if(Math.hypot(dl,dn)<1){S.city=k;save();go("today");refresh(false);toast("📍 "+o.n);return}}   // < 1 km du centre déjà enregistré : on garde les données en cache
-  const pl=await placeOf(lat,lon);
+  toast("Recherche du lieu…");const iv=setInterval(()=>toast("Recherche du lieu…"),1200);   // retour visuel pendant la recherche du nom
+  let pl=null;try{pl=await placeOf(lat,lon)}catch(e){}finally{clearInterval(iv)}
   const g={n:pl?pl.n:"Ma position",c:pl?pl.c:lat.toFixed(2)+"°, "+lon.toFixed(2)+"°",lat:pl?pl.lat:lat,lon:pl?pl.lon:lon,alt:null,tz:Intl.DateTimeFormat().resolvedOptions().timeZone,geo:true,named:!!pl};
   const k2=CITIES.findIndex(c=>c.geo);
   if(k2>=0&&CITIES[k2].lat===g.lat&&CITIES[k2].lon===g.lon){S.city=k2;save();go("today");refresh(false);toast("📍 "+CITIES[k2].n);return}   // même lieu
