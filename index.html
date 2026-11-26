@@ -142,7 +142,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 <!-- AUJOURD'HUI -->
 <section class="view on" id="v-today">
   <div class="top">
-    <div><div class="loc">📍 <span id="cityName"></span></div><div class="date" id="citySub" style="display:none"></div><div class="date" id="dateStr"></div></div>
+    <div><div class="loc">📍 <span id="cityName"></span></div><div class="loc" id="citySub" style="display:none"><span style="visibility:hidden">📍</span><span id="citySubT"></span></div><div class="date" id="dateStr"></div></div>
   </div>
   <div class="card" id="status" style="display:none;text-align:center"></div>
   <div class="hero">
@@ -212,8 +212,6 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
     <div class="row">Animation météo réaliste<div class="sw on" data-s="anim"></div></div>
     <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0"><span id="metLbl">Requêtes envoyées à MET Norway</span><div style="font-size:11.5px;color:var(--mut);margin-top:3px;font-weight:400;line-height:1.35" id="metSub">—</div><div id="metDet" style="font-size:11.5px;color:var(--mut);margin-top:6px;font-weight:400;line-height:1.5"></div></div><b id="metN" style="font:700 22px Inter">0</b></div>
     <div class="row">Compteur de requêtes<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetMetStats()">Réinitialiser</button></div>
-    <div class="row">Villes enregistrées<button class="tg" style="border:0;color:var(--txt);padding:8px 12px;font:600 13px Inter;cursor:pointer" onclick="resetCities()">Réinitialiser</button></div>
-    <div class="row">Résumé quotidien<div class="sw" data-s="daily"></div></div>
   </div>
   <div class="card"><div class="ct">ℹ️ À propos</div><div class="sub">Météo Pro v3.0 · Prévisions : MET Norway (api.met.no, Locationforecast 2.0 et Sunrise 3.0), sous licence <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons CC BY 4.0</a> / NLOD. Les réponses sont conservées localement et ne sont renouvelées qu'après leur date d'expiration (en-tête Expires). Heures affichées dans le fuseau de chaque ville. L'indice UV est estimé (ciel clair corrigé de la nébulosité). La recherche de villes utilise Open-Meteo Geocoding. La qualité de l'air n'est pas fournie par MET Norway hors de Norvège.</div></div>
 </section>
@@ -252,7 +250,7 @@ if(S.anim===null)S.anim=!(matchMedia("(prefers-reduced-motion: reduce)").matches
 /* Position GPS : « Ma position » en titre, la ville ou le village en dessous. */
 const geoSub=C=>C.named?C.n+", "+C.c:C.c;
 function setCityName(C){
- if(C.geo){$("cityName").textContent="Ma position";$("citySub").textContent=geoSub(C);$("citySub").style.display=""}
+ if(C.geo){$("cityName").textContent="Ma position";$("citySubT").textContent=geoSub(C);$("citySub").style.display=""}
  else{$("cityName").textContent=C.n+", "+C.c;$("citySub").style.display="none"}
 }
 const save=()=>{try{localStorage.setItem("meteoPro",JSON.stringify(S))}catch(e){}};
@@ -505,7 +503,7 @@ const FX=(()=>{
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
- let fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
+ let moonTx=null,moonSp=null,moonKey="",fastUntil=0,sprOld=null,trans=1,clouds=[],spr=[],sprKey="",deck=null,deckOld=null,deckKey="",deckT=1,deckCv=-1,shaft=null,spl=[],floorY=1e9,fx0=0,fx1=0,fmT=0,rain=[],snow=[],drops=[],stars=[],fogS=null,fogKey="",moonS=null,bolt=null,nextBolt=0,flashT=-9,meteor=null,nextMeteor=12,dropAcc=0;
  const R=(a=0,b=1)=>a+Math.random()*(b-a);
  const PI2=Math.PI*2,WETC=["rain","shower","storm","sleet"],PRECIP=["rain","shower","storm","sleet","snow"];
  const srand=s=>()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
@@ -526,14 +524,62 @@ const FX=(()=>{
   return c;
  }
  const flake=(()=>{const c=off(48,48),g=c.getContext("2d"),gr=g.createRadialGradient(24,24,0,24,24,24);gr.addColorStop(0,"rgba(255,255,255,1)");gr.addColorStop(.35,"rgba(255,255,255,.55)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.fillRect(0,0,48,48);return c})();
+ /* ---------- Lune hyper réaliste : relief + albédo procéduraux (vraies positions des mers et cratères), éclairage calculé selon la phase ---------- */
+ const MN_N=384;
  function mkMoon(){
-  const c=off(160,160),g=c.getContext("2d"),r=srand(99),gr=g.createRadialGradient(64,58,6,80,80,80);
-  gr.addColorStop(0,"#fbf8ec");gr.addColorStop(.7,"#d9d5c4");gr.addColorStop(1,"#b3af9f");
-  g.fillStyle=gr;g.beginPath();g.arc(80,80,80,0,PI2);g.fill();
-  g.save();g.beginPath();g.arc(80,80,80,0,PI2);g.clip();
-  for(let i=0;i<12;i++){const x=r()*140+10,y=r()*140+10,rad=8+r()*22,m=g.createRadialGradient(x,y,0,x,y,rad);m.addColorStop(0,"rgba(90,88,80,.16)");m.addColorStop(1,"rgba(90,88,80,0)");g.fillStyle=m;g.fillRect(x-rad,y-rad,rad*2,rad*2)}
-  const l=g.createRadialGradient(80,80,50,80,80,82);l.addColorStop(0,"rgba(0,0,0,0)");l.addColorStop(1,"rgba(40,38,30,.35)");g.fillStyle=l;g.fillRect(0,0,160,160);g.restore();
-  return c;
+  const N=MN_N,r=srand(4242),Hh=new Float32Array(N*N),Al=new Float32Array(N*N),Mk=new Float32Array(N*N);
+  const mkN=n=>{const a=new Float32Array((n+1)*(n+1));for(let i=0;i<a.length;i++)a[i]=r();return(u,v)=>{const x=u*n,y=v*n,x0=Math.min(n-1,x|0),y0=Math.min(n-1,y|0),tx=x-x0,ty=y-y0,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),i=y0*(n+1)+x0;return(a[i]*(1-sx)+a[i+1]*sx)*(1-sy)+(a[i+n+1]*(1-sx)+a[i+n+2]*sx)*sy}};
+  const n1=mkN(5),n2=mkN(12),n3=mkN(34),n4=mkN(96),n5=mkN(7),fb=(u,v)=>.46*n1(u,v)+.28*n2(u,v)+.17*n3(u,v)+.09*n4(u,v);
+  const sm01=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+  // mers lunaires : [x, y(haut>0), demi-axe a, b, rotation, profondeur] — coordonnées du disque (rayon = 1), vues de l'hémisphère nord
+  const MARIA=[[-.23,.54,.3,.26,.1,.95],[.265,.47,.19,.19,0,.9],[.51,.15,.27,.18,-.3,.85],[.79,-.07,.13,.25,.1,.75],[.82,.29,.075,.16,.1,1],[.55,-.26,.09,.11,0,.7],[-.26,-.36,.22,.16,.1,.75],[-.575,-.41,.09,.1,0,.85],[-.38,-.18,.08,.07,0,.7],
+   [-.62,.25,.22,.3,.2,.8],[-.78,.05,.15,.28,0,.78],[-.7,.5,.14,.18,.3,.75],[-.5,-.02,.14,.2,0,.7],[-.51,.13,.1,.08,0,.72],[0,.84,.5,.065,.05,.55],[.06,.22,.09,.08,0,.6],[-.14,.2,.08,.06,0,.6],[0,0,.05,.05,0,.45]];
+  for(let py=0;py<N;py++)for(let px=0;px<N;px++){
+   const X=(px+.5)/N*2-1,Y=1-(py+.5)/N*2,u=px/N,v=py/N;let m=0;
+   for(const[cx,cy,a,b,rt,d]of MARIA){const dx=X-cx,dy=Y-cy,c=Math.cos(rt),s=Math.sin(rt),uu=(dx*c+dy*s)/a,ww=(-dx*s+dy*c)/b;m=Math.max(m,d*Math.exp(-(uu*uu+ww*ww)))}
+   m=sm01((m+(fb((u*1.3)%1,v)-.5)*.5+(n2((u*1.7)%1,v)-.5)*.2-.28)/.32);
+   const i=py*N+px;Mk[i]=m;
+   const hl=.8+(fb(u,v)-.5)*.2+(n2(u,v)-.5)*.1+(n4(u,v)-.5)*.1+(n3(u,v)-.5)*.06,ma=.5+(fb((u+.4)%1,v)-.5)*.16+(n3(u,v)-.5)*.09+(n4(u,v)-.5)*.05;
+   Al[i]=hl+(ma-hl)*m;Hh[i]=(n5(u,v)-.5)*.012*(1-m*.7)+(n3(u,v)-.5)*.004;
+  }
+  const crater=(X,Y,rad,fresh,floorDark)=>{ // cuvette + rebord + pic central ; rayon rad en unités du disque
+   const cx=(X+1)/2*N,cy=(1-Y)/2*N,pr=rad*N/2,ext=Math.ceil(pr*1.9)+2;
+   for(let py=Math.max(0,(cy-ext)|0);py<Math.min(N,cy+ext);py++)for(let px=Math.max(0,(cx-ext)|0);px<Math.min(N,cx+ext);px++){
+    const d=Math.hypot(px+.5-cx,py+.5-cy)/pr;if(d>1.9)continue;const i=py*N+px;let h=0;
+    if(d<1)h=-.14*rad*(1-d*d*d);h+=.07*rad*Math.exp(-((d-1.05)/.2)*((d-1.05)/.2));
+    if(rad>.04&&d<.35)h+=.07*rad*Math.exp(-(d/.16)*(d/.16));
+    if(d>1)h+=.02*rad*Math.exp(-(d-1)*2.2);
+    Hh[i]+=h;if(d<1)Al[i]-=floorDark*(1-d);if(fresh&&d<1.5)Al[i]+=fresh*(1.5-d)/1.5;
+   }
+  };
+  // cratères nommés [x, y, rayon, éclat, assombrissement du fond]
+  [[-.14,-.68,.05,.14,0],[-.335,.17,.055,.12,0],[-.61,.14,.03,.1,0],[-.67,.4,.03,.2,0],[-.1,.78,.05,0,.1],[-.126,-.85,.12,0,.02],[-.03,-.16,.06,0,.03],[-.054,-.23,.06,0,.03],[-.03,-.31,.05,0,.02],[.435,-.2,.05,.04,0],[.87,-.15,.06,.03,0],[.79,-.42,.09,0,.03],[-.93,-.09,.09,0,.1],[-.06,.5,.05,.02,.02],[.19,.77,.05,0,.02],[.2,.7,.03,0,.02],[-.45,.35,.03,.06,0],[.3,-.55,.07,0,.02]].forEach(([x,y,rd,f,fl])=>crater(x,y,rd,f,fl));
+  // cratères aléatoires (loi de puissance)
+  for(let k=0;k<3600;k++){const rd=.0036*Math.pow(1-r()*.99,-1/1.5);if(rd>.06)continue;const a=r()*PI2,rr=Math.sqrt(r())*.985,X=Math.cos(a)*rr,Y=Math.sin(a)*rr,ix=((X+1)/2*N)|0,iy=((1-Y)/2*N)|0;
+   if(r()<Mk[iy*N+ix]*.78)continue;crater(X,Y,rd*(1-.3*rr*rr),r()<.08?.05:0,.012)}
+  // rayons (Tycho, Copernic, Képler)
+  const ray=(X0,Y0,n,len,amp)=>{for(let k=0;k<n;k++){const a=r()*PI2,L=len*(.35+.65*r()),w=.0035+.004*r();for(let t=.03;t<L;t+=.003){const X=X0+Math.cos(a)*t,Y=Y0+Math.sin(a)*t;if(X*X+Y*Y>.97)break;const f=amp*Math.pow(1-t/L,1.1),cx=(X+1)/2*N,cy=(1-Y)/2*N,pw=Math.max(.7,w*N/2);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const px=(cx+dx)|0,py=(cy+dy)|0;if(px<0||py<0||px>=N||py>=N)continue;Al[py*N+px]+=f*(dx||dy?.45:1)/ (pw>1?1:1.2)*.5}}}};
+  ray(-.14,-.68,20,1.1,.05);ray(-.335,.17,16,.32,.06);ray(-.61,.14,8,.18,.05);
+  const G=new Float32Array(N*N*2);
+  for(let py=1;py<N-1;py++)for(let px=1;px<N-1;px++){const i=py*N+px;G[i*2]=(Hh[i+1]-Hh[i-1])*N/4;G[i*2+1]=-(Hh[i+N]-Hh[i-N])*N/4}
+  return{N,Al,Mk,G};
+ }
+ function mkMoonSpr(tx,th,chi,S){
+  const N=tx.N,Al=tx.Al,Mk=tx.Mk,G=tx.G,c=off(S,S),g=c.getContext("2d"),im=g.createImageData(S,S),D=im.data;
+  const sn=Math.sin(th),sx=-Math.sin(chi)*sn,sy=Math.cos(chi)*sn,sz=-Math.cos(th),frac=(1-Math.cos(th))/2,earth=.012+.05*Math.pow(1-frac,1.6),K=1.05;
+  const samp=(A,fx,fy,off2,st2)=>{const x0=Math.max(0,Math.min(N-2,fx|0)),y0=Math.max(0,Math.min(N-2,fy|0)),tx2=fx-x0,ty2=fy-y0,i=(y0*N+x0)*st2+off2;return(A[i]*(1-tx2)+A[i+st2]*tx2)*(1-ty2)+(A[i+N*st2]*(1-tx2)+A[i+N*st2+st2]*tx2)*ty2};
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+   const x=(i+.5)/S*2-1,y=1-(j+.5)/S*2,rr=x*x+y*y;if(rr>1.03)continue;
+   const z=Math.sqrt(Math.max(0,1-rr)),fx=(x+1)/2*N-.5,fy=(1-y)/2*N-.5,a=samp(Al,fx,fy,0,1),gx=samp(G,fx,fy,0,2),gy=samp(G,fx,fy,1,2),k=K*Math.sqrt(z);
+   let nx=x-k*gx,ny=y-k*gy,nz=z;const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;
+   const m0=nx*sx+ny*sy+nz*sz,mu=Math.max(.04,nz);
+   let L=m0>0?m0/(m0+.62*mu+.04)*1.62:0;L=Math.min(1.3,L);
+   const lum=Math.max(0,Math.min(1.2,a))*(L*1.08+earth),mk=Mk[((j/S*N)|0)*N+((i/S*N)|0)],o=(j*S+i)*4;
+   const wr=1+mk*.01,wb=1-mk*.02;
+   D[o]=Math.min(255,255*lum*wr*.99+(earth>0?0:0));D[o+1]=Math.min(255,255*lum*.985);D[o+2]=Math.min(255,255*lum*wb*(m0>0?.97:1.12));
+   D[o+3]=255*Math.max(0,Math.min(1,(1.0-Math.sqrt(rr))*S*.5));
+  }
+  g.putImageData(im,0,0);return c;
  }
  function mkFog(c0){
   const w=1100,h=260,c=off(w,h),g=c.getContext("2d"),r=srand(5);
@@ -552,7 +598,6 @@ const FX=(()=>{
  function setup(){
   if(!W)return;
   const cv_=0;  const fk=st.dk>.6?"n":"d";if(fk!=fogKey){fogKey=fk;fogS=mkFog((fk=="n"?PAL.night[0]:PAL.fog[0]).join(","))}
-  if(!moonS)moonS=mkMoon();
   if(st.c=="storm"&&nextBolt==0)nextBolt=(performance.now()-T0)/1000+R(1.2,3.5);
   if(st.c!="storm")nextBolt=0;
  }
@@ -579,35 +624,76 @@ const FX=(()=>{
   const f=st.sunF,el=Math.sin(f*Math.PI),x=W*(.14+.72*f),y=H*(.30-.19*el);
   let v=1-st.cl/100*.9;if(PRECIP.includes(st.c)||st.c=="fog")v*=.12;if(v<.03)return;
   const sc=1+.07*Math.sin(t*2.3)+.05*Math.sin(t*3.9+1.3)+.03*Math.sin(t*7.1+.4),warm=1-Math.pow(el,.5),cr=255,cg=Math.round(244-72*warm),cb=Math.round(214-124*warm),col=`${cr},${cg},${cb}`;
-  const R1=Math.max(W,H)*.62,g=ctx.createRadialGradient(x,y,0,x,y,R1);
-  g.addColorStop(0,`rgba(${col},${.6*v*sc})`);g.addColorStop(.22,`rgba(${col},${.22*v*(1+(sc-1)*1.5)})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  /* 1. voile de lumière : le ciel proche du soleil est délavé, presque blanc */
+  const R1=Math.max(W,H)*.58,g=ctx.createRadialGradient(x,y,0,x,y,R1);
+  g.addColorStop(0,`rgba(255,255,255,${.7*v*sc})`);g.addColorStop(.1,`rgba(255,251,242,${.4*v*(1+(sc-1)*1.4)})`);g.addColorStop(.32,`rgba(${col},${.13*v})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  /* 2. halo à 22° : anneau pâle, bord intérieur chaud, bord extérieur bleu-vert (voile de cirrus) */
+  const ha=v*(1-ss_(.15,.7,st.cl/100))*(1-Math.min(1,st.dk*1.5));
+  if(ha>.02){const hr=W*.56,hg=ctx.createRadialGradient(x,y,hr*.8,x,y,hr*1.24);
+   hg.addColorStop(0,"rgba(255,170,120,0)");hg.addColorStop(.2,`rgba(255,190,130,${.07*ha})`);hg.addColorStop(.42,`rgba(255,236,205,${.12*ha})`);hg.addColorStop(.62,`rgba(190,238,205,${.08*ha*(1+.15*Math.sin(t*.4))})`);hg.addColorStop(.82,`rgba(150,200,255,${.06*ha})`);hg.addColorStop(1,"rgba(150,200,255,0)");
+   ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle=hg;ctx.fillRect(0,0,W,H);ctx.restore()}
+  /* 3. rayons très discrets */
   if(v>.3){
    ctx.save();ctx.translate(x,y);ctx.globalCompositeOperation="lighter";const L=Math.max(W,H)*1.3;
    for(let k=0;k<11;k++){const a=k*.571+t*.014+Math.sin(k*3.1)*.2,wd=(.045+.035*Math.sin(k*1.7+t*.25))*(1+.12*Math.sin(t*1.9+k*2.3)),gr=ctx.createLinearGradient(0,0,Math.cos(a)*L,Math.sin(a)*L);
-    gr.addColorStop(0,`rgba(${col},${.07*v*(1+.45*Math.sin(t*1.6+k*1.9)*Math.sin(t*2.7+k))})`);gr.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a-wd)*L,Math.sin(a-wd)*L);ctx.lineTo(Math.cos(a+wd)*L,Math.sin(a+wd)*L);ctx.fill()}
+    gr.addColorStop(0,`rgba(${col},${.035*v*(1+.45*Math.sin(t*1.6+k*1.9)*Math.sin(t*2.7+k))})`);gr.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a-wd)*L,Math.sin(a-wd)*L);ctx.lineTo(Math.cos(a+wd)*L,Math.sin(a+wd)*L);ctx.fill()}
    ctx.restore();
   }
-  const c2=ctx.createRadialGradient(x,y,0,x,y,90);c2.addColorStop(0,`rgba(255,253,240,${.95*v})`);c2.addColorStop(.3,`rgba(${col},${Math.min(.8,.55*v*sc)})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-90,y-90,180,180);
-  ctx.fillStyle=`rgba(255,254,244,${v})`;ctx.beginPath();ctx.arc(x,y,Math.min(30,W*.075)*(1+.012*Math.sin(t*4.1)),0,PI2);ctx.fill();
-  if(v>.4){ctx.save();ctx.globalCompositeOperation="lighter";ctx.translate(x,y);const gl=Math.max(0,Math.sin(t*1.7)*Math.sin(t*2.9+1))*v,L2=Math.min(70,W*.17)*(.8+gl);ctx.rotate(t*.05);for(let q=0;q<4;q++){ctx.rotate(Math.PI/4);const gg=ctx.createLinearGradient(-L2,0,L2,0);gg.addColorStop(0,"rgba(255,250,225,0)");gg.addColorStop(.5,`rgba(255,250,225,${.16*gl+.03*v})`);gg.addColorStop(1,"rgba(255,250,225,0)");ctx.fillStyle=gg;ctx.fillRect(-L2,-1.2,L2*2,2.4)}ctx.restore()}
-  if(v>.55&&st.cl<35){ctx.save();ctx.globalCompositeOperation="lighter";const cx=W*.5,cy=H*.55;[[.38,16,.05],[.62,28,.04],[.88,12,.06],[1.25,40,.035]].forEach(([k,r,a])=>{const px=x+(cx-x)*k,py=y+(cy-y)*k,gr=ctx.createRadialGradient(px,py,0,px,py,r);gr.addColorStop(0,`rgba(255,235,200,${a*v})`);gr.addColorStop(1,"rgba(255,235,200,0)");ctx.fillStyle=gr;ctx.fillRect(px-r,py-r,r*2,r*2)});ctx.restore()}
+  /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
+  const rc=Math.min(27,W*.068)*(1+.025*Math.sin(t*4.1));
+  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
+  /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
+  for(let q=0;q<8;q++){
+   const an=q*.785+t*.06+Math.sin(q*3.1)*.5,dd=q?rc*.42*(.6+.5*Math.sin(t*1.9+q*2.3)):0,rr=rc*(q?.62+.18*Math.sin(t*2.7+q*1.7):.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
+   gr.addColorStop(0,`rgba(255,255,253,${v})`);gr.addColorStop(.5,`rgba(255,254,248,${.8*v})`);gr.addColorStop(1,"rgba(255,248,232,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
+  }
+  if(v>.4){ctx.save();ctx.globalCompositeOperation="lighter";ctx.translate(x,y);const gl=Math.max(0,Math.sin(t*1.7)*Math.sin(t*2.9+1))*v,L2=Math.min(80,W*.2)*(.8+gl);ctx.rotate(t*.05);for(let q=0;q<4;q++){ctx.rotate(Math.PI/4);const gg=ctx.createLinearGradient(-L2,0,L2,0);gg.addColorStop(0,"rgba(255,250,225,0)");gg.addColorStop(.5,`rgba(255,250,225,${.16*gl+.04*v})`);gg.addColorStop(1,"rgba(255,250,225,0)");ctx.fillStyle=gg;ctx.fillRect(-L2,-1.2,L2*2,2.4)}ctx.restore()}
+  /* 5. reflets d'objectif : disques pâles à bord légèrement plus clair, alignés du soleil vers le centre de l'écran, + une traînée bleutée */
+  const gv=v*(1-ss_(.1,.55,st.cl/100))*(1-Math.min(1,st.dk*1.6));
+  if(gv>.05){ctx.save();ctx.globalCompositeOperation="lighter";const cx=W*.5,cy=H*.52;
+   [[.5,17,.1],[.78,24,.085],[1.02,31,.07],[1.34,14,.1],[1.66,19,.075]].forEach(([k,r,a],n)=>{
+    const px=x+(cx-x)*k+Math.sin(t*.17+n*1.9)*1.6,py=y+(cy-y)*k+Math.cos(t*.13+n*2.3)*1.6,gr=ctx.createRadialGradient(px,py,0,px,py,r);
+    gr.addColorStop(0,`rgba(235,243,255,${a*.45*gv})`);gr.addColorStop(.72,`rgba(235,243,255,${a*.7*gv})`);gr.addColorStop(.9,`rgba(240,246,255,${a*1.5*gv})`);gr.addColorStop(1,"rgba(240,246,255,0)");
+    ctx.fillStyle=gr;ctx.fillRect(px-r,py-r,r*2,r*2)});
+   {const px=x+(cx-x)*.3,py=y+(cy-y)*.3;ctx.translate(px,py);ctx.scale(2.8,.65);const gr=ctx.createRadialGradient(0,0,0,0,0,20);gr.addColorStop(0,`rgba(170,205,255,${.16*gv})`);gr.addColorStop(1,"rgba(170,205,255,0)");ctx.fillStyle=gr;ctx.fillRect(-20,-20,40,40)}
+   ctx.restore()}
+ }
+ /* ---------- cirrus : fins filaments translucides, légère dérive ---------- */
+ let cirT=null;
+ function mkCirrus(seed){
+  const TW=512,TH=384,c=off(TW,TH),g=c.getContext("2d"),im=g.createImageData(TW,TH),r=srand(seed),O=4,grids=[];
+  for(let o=0;o<O;o++){const nx=3<<o,ny=(26<<o)+1,a=new Float32Array(nx*ny);for(let i=0;i<a.length;i++)a[i]=r();grids.push({nx,ny,a})}
+  const cg={nx:2,ny:5,a:Float32Array.from({length:10},()=>r())},smt=t=>t*t*(3-2*t);
+  const nz=(G,x,y)=>{const fx=x*G.nx,fy=y*(G.ny-1),x0=Math.floor(fx),y0=Math.floor(fy),tx=smt(fx-x0),ty=smt(fy-y0),X0=((x0%G.nx)+G.nx)%G.nx,X1=(X0+1)%G.nx,Y0=Math.min(G.ny-1,Math.max(0,y0)),Y1=Math.min(G.ny-1,Y0+1),A=G.a;return(A[Y0*G.nx+X0]*(1-tx)+A[Y0*G.nx+X1]*tx)*(1-ty)+(A[Y1*G.nx+X0]*(1-tx)+A[Y1*G.nx+X1]*tx)*ty};
+  for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){
+   const u=x/TW,v=y/TH;let d=0,a=.5,n=0;for(let o=0;o<O;o++){d+=a*nz(grids[o],u,v);n+=a;a*=.56}d/=n;
+   const m=nz(cg,u,v),al=Math.max(0,Math.min(1,(d-.52)/.15))*Math.max(0,Math.min(1,(m-.35)/.35)),i=(y*TW+x)*4;
+   im.data[i]=248;im.data[i+1]=251;im.data[i+2]=255;im.data[i+3]=al*al*255;
+  }
+  g.putImageData(im,0,0);return c;
+ }
+ function drawCirrus(dt,t){
+  const clr=1-ss_(.2,.9,st.cl/100),va=clr*(1-Math.min(1,st.dk*.95))*(PRECIP.includes(st.c)||st.c=="fog"?0:1);
+  if(va<.03)return;
+  if(!cirT)cirT=[mkCirrus(7919),mkCirrus(15485863)];
+  const ww=Math.max(W*2.4,900),hh=H*.5;
+  ctx.save();ctx.translate(W*.5,H*.2);
+  [[0,-.36,4.5,.38,1],[1,-.3,-2.8,.26,1.35]].forEach(([k,rot,sp,al,sz])=>{
+   const w2=ww*sz,xo=(((t*sp)%w2)+w2)%w2;ctx.save();ctx.rotate(rot);ctx.globalAlpha=Math.min(.55,al*va*(.85+.15*Math.sin(t*.21+k*2)));
+   for(let q=0;q<4;q++)ctx.drawImage(cirT[k],xo-w2*1.5+q*w2,-hh*sz/2,w2,hh*sz);ctx.restore()});
+  ctx.restore();ctx.globalAlpha=1;
  }
  function drawMoon(){
   if(st.moon==null||st.dk<.2)return;
-  const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.03)return;
+  const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.012)return;
   let v=(1-st.cl/100*.92)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c)||st.c=="fog")v*=.1;if(v<.03)return;
   const m=st.moon;let an=m.az;if(m.south){an=an>0?an-Math.PI:an+Math.PI}
-  const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.42-.3*Math.min(1,m.alt/(1.22))),r=Math.min(32,W*.08),
-   lit=(m.south?1:-1)*(m.ang-m.para)*(m.south?1:1);
-  const g=ctx.createRadialGradient(x,y,r*.6,x,y,r*7);g.addColorStop(0,`rgba(190,205,255,${.3*v*(.3+.7*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);
-  ctx.save();ctx.translate(x,y);
-  ctx.globalAlpha=v*.16;ctx.fillStyle="#9aa9d0";ctx.beginPath();ctx.arc(0,0,r,0,PI2);ctx.fill();
-  ctx.globalAlpha=v;ctx.rotate((m.south?m.ang-m.para:m.para-m.ang)-(st.ph<=.5?Math.PI/2:3*Math.PI/2));if(st.ph>.5)ctx.scale(-1,1);
-  const a=r*Math.cos(st.ph*PI2*(st.ph>.5?1:1));
-  ctx.beginPath();ctx.arc(0,0,r,-Math.PI/2,Math.PI/2,false);
-  const aa=st.ph<=.5?r*Math.cos(st.ph*PI2):r*Math.cos((1-st.ph)*PI2);
-  if(aa>=0)ctx.ellipse(0,0,Math.max(aa,.01),r,0,Math.PI/2,-Math.PI/2,true);else ctx.ellipse(0,0,-aa,r,0,Math.PI/2,Math.PI*1.5,false);
-  ctx.closePath();ctx.clip();ctx.drawImage(moonS,-r,-r,r*2,r*2);ctx.restore();ctx.globalAlpha=1;
+  const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.42-.3*Math.min(1,m.alt/(1.22))),r=Math.min(32,W*.08);
+  if(!moonTx)moonTx=mkMoon();
+  const key=Math.round(st.ph*500)+"|"+Math.round(m.ang*50);
+  if(key!==moonKey||!moonSp){moonKey=key;moonSp=mkMoonSpr(moonTx,st.ph*PI2,m.ang,256)}
+  const g=ctx.createRadialGradient(x,y,r*.7,x,y,r*7);g.addColorStop(0,`rgba(196,210,255,${.34*v*(.25+.75*ill)})`);g.addColorStop(.35,`rgba(190,205,255,${.1*v*(.25+.75*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);
+  ctx.save();ctx.translate(x,y);ctx.rotate(m.para);ctx.globalAlpha=v;ctx.imageSmoothingQuality="high";ctx.drawImage(moonSp,-r,-r,r*2,r*2);ctx.restore();ctx.globalAlpha=1;
  }
 
  /* ---------- couches nuageuses (bruit fractal, bords éclairés) ---------- */
@@ -828,7 +914,7 @@ const FX=(()=>{
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const tr=rainI(),ts_=snowI(),kk=Math.min(1,dt/(performance.now()<fastUntil?.6:2.8));sm.r+=(tr-sm.r)*kk;sm.s+=(ts_-sm.s)*kk;if(sm.r<.004&&!tr)sm.r=0;if(sm.s<.004&&!ts_)sm.s=0;
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
-  drawStars(t);drawSun(t);drawMoon();
+  drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon();
   drawClouds(dt,t);
   measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}else{rain.length=0;spl.length=0}
   if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
