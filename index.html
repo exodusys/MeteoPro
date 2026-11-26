@@ -640,6 +640,13 @@ const FX=(()=>{
    const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
    gr.addColorStop(0,`rgba(255,255,253,${v})`);gr.addColorStop(.5,`rgba(255,254,248,${.8*v})`);gr.addColorStop(1,"rgba(255,248,232,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
   }
+  /* pointes d'étoile douces et courtes (comme Apple Météo) : 8 pétales irréguliers, fixes, très floutés */
+  ctx.save();ctx.translate(x,y);ctx.globalCompositeOperation="lighter";
+  [[.1,3.5,.62],[.82,2.8,.58],[1.55,3.7,.66],[2.3,2.9,.58],[3.2,3.5,.62],[3.9,2.7,.58],[4.7,3.7,.66],[5.5,2.9,.58]].forEach(([an,ln,wd])=>{
+   const L=rc*ln;ctx.save();ctx.rotate(an);ctx.translate(L*.38,0);ctx.scale(L*.62,rc*wd*1.15);
+   const gr=ctx.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,`rgba(255,255,255,${.6*v})`);gr.addColorStop(.4,`rgba(255,252,244,${.22*v})`);gr.addColorStop(1,"rgba(255,250,240,0)");
+   ctx.fillStyle=gr;ctx.fillRect(-1,-1,2,2);ctx.restore()});
+  ctx.restore();
   /* 5. reflets d'objectif : disques pâles à bord légèrement plus clair, alignés du soleil vers le centre de l'écran, + une traînée bleutée */
   const gv=v*(1-ss_(.1,.55,st.cl/100))*(1-Math.min(1,st.dk*1.6));
   if(gv>.05){ctx.save();ctx.globalCompositeOperation="lighter";const cx=W*.5,cy=H*.52;
