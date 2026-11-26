@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#0b1a3a">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Météo Pro</title>
-<script>try{var _s=JSON.parse(localStorage.getItem("meteoPro")||"{}"),_t=_s.theme||"auto";document.documentElement.dataset.theme=_t=="auto"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):_t}catch(e){}</script>
+<script>document.documentElement.dataset.theme="dark"</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -201,7 +201,6 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 <section class="view" id="v-set">
   <h1 style="font-size:28px;font-weight:700;margin-bottom:14px">Réglages</h1>
   <div class="card">
-    <div class="row">Apparence<div class="tg" id="uTh"><button class="on" data-v="auto">Auto</button><button data-v="light">Clair</button><button data-v="dark">Sombre</button></div></div>
     <div class="row">Température<div class="tg" id="uT"><button class="on" data-v="C">°C</button><button data-v="F">°F</button></div></div>
     <div class="row">Vent<div class="tg" id="uW"><button class="on" data-v="kmh">km/h</button><button data-v="ms">m/s</button><button data-v="mph">mph</button></div></div>
     <div class="row">Pression<div class="tg" id="uP"><button class="on" data-v="hPa">hPa</button><button data-v="inHg">inHg</button></div></div>
@@ -245,7 +244,7 @@ const DEFAULTS=[
  {n:"New York",c:"États-Unis",lat:40.7128,lon:-74.006,alt:10,tz:"America/New_York"}
 ];
 const COND={clear:["Ensoleillé","☀️","🌙"],pc:["Partiellement nuageux","⛅","☁️"],cloud:["Nuageux","☁️","☁️"],rain:["Pluie","🌧️","🌧️"],shower:["Averses","🌦️","🌧️"],sleet:["Pluie et neige mêlées","🌨️","🌨️"],storm:["Orages","⛈️","⛈️"],snow:["Neige","🌨️","🌨️"],fog:["Brouillard","🌫️","🌫️"]};
-let S={theme:"auto",anim:null,city:0,uT:"C",uW:"kmh",uP:"hPa",uH:"24",alerts:true,dyn:true,chart:"temp",layer:"rain"};
+let S={theme:"dark",anim:null,city:0,uT:"C",uW:"kmh",uP:"hPa",uH:"24",alerts:true,dyn:true,chart:"temp",layer:"rain"};
 try{Object.assign(S,JSON.parse(localStorage.getItem("meteoPro")||"{}"))}catch(e){}
 let CITIES=Array.isArray(S.list)&&S.list.length?S.list:DEFAULTS.map(c=>({...c}));S.list=CITIES;
 if(!CITIES[S.city])S.city=0;
@@ -788,11 +787,10 @@ const FX=(()=>{
 
 const mqDark=matchMedia("(prefers-color-scheme: dark)");
 function applyTheme(){
- const th=S.theme=="auto"?(mqDark.matches?"dark":"light"):S.theme;
+ const th="dark";
  const b_=document.body;b_.classList.add("nofade");document.documentElement.dataset.theme=th;FX.set({light:th=="light"});updateSky();requestAnimationFrame(()=>requestAnimationFrame(()=>b_.classList.remove("nofade")));
  try{drawChart()}catch(e){}
 }
-(mqDark.addEventListener||mqDark.addListener).call(mqDark,"change",()=>{if(S.theme=="auto")applyTheme()});
 function fxUpdate(o){
  $("v-today").classList.toggle("fxon",!!S.anim);
  if(!S.anim){FX.stop();return}
@@ -1271,7 +1269,6 @@ const segs=(id,key,fn)=>document.querySelectorAll("#"+id+" button").forEach(b=>{
 segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.querySelectorAll("#layerSeg button").forEach(b=>b.classList.toggle("on",b.dataset.l==S.layer));
 ["uT","uW","uP","uH"].forEach(id=>{document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v==S[id]));segs(id,id,()=>{render();drawRadar();drawCities()})});
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
-document.querySelectorAll("#uTh button").forEach(b=>b.classList.toggle("on",b.dataset.v==S.theme));segs("uTh","theme",applyTheme);
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)FX.pause();else{if(S.anim&&$("v-today").classList.contains("on"))FX.start();if(mapOn())drawRadar();refresh(false)}});
 applyTheme();
