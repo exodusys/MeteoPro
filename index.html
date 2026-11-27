@@ -18,7 +18,7 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);height:100%;overflow:hidden}
 html{height:100%;overflow:hidden}
-#sc{position:fixed;left:0;right:0;top:0;bottom:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+#sc{position:fixed;left:0;right:0;top:env(safe-area-inset-top);bottom:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 html{background:var(--bg2);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 #sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
@@ -34,7 +34,7 @@ html[data-theme=light] body.dusk{--bg1:#b79fd6;--bg2:#ffdcc0}
 html[data-theme=light] body.night{--bg1:#7d8cbc;--bg2:#d0d8ee}
 html[data-theme=light] body.rain{--bg1:#8798ab;--bg2:#d3dde7}
 html[data-theme=light] body.snow{--bg1:#aab9d0;--bg2:#eef3fa}
-.app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 100px)}
+.app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:18px 16px calc(env(safe-area-inset-bottom) + 100px)}
 html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%}
 .view{display:none;animation:fade .35s ease}.view.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
@@ -515,7 +515,7 @@ function quick(E){
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";document.getElementById("sc").insertBefore(cv3,document.getElementById("sc").firstChild);
+ cv3.style.cssText="position:absolute;left:0;top:calc(0px - env(safe-area-inset-top));width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";document.getElementById("sc").insertBefore(cv3,document.getElementById("sc").firstChild);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
