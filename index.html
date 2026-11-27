@@ -1457,9 +1457,9 @@ addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
   if(!$("v-today").classList.contains("on")||scrollY>5)return;
   const a=FX.astro(),h=els[0].getBoundingClientRect(),l=els[2].getBoundingClientRect();if(!h.height)return;
   const top=h.top+scrollY-shift,bot=l.bottom+scrollY-shift;let L=1e9,R=-1e9;els.forEach(e=>{if(e.textContent){const[x0,x1]=tw(e);L=Math.min(L,x0);R=Math.max(R,x1)}});
-  let need=0;for(const[x,y,r0]of a){const r=r0*.68,nx=Math.max(L-8,Math.min(x,R+8)),dx=x-nx;if(Math.abs(dx)>=r)continue;const hy=Math.sqrt(r*r-dx*dx);   // la boule touche-t-elle la zone de texte ?
-   if(y+hy>top&&y-hy<bot)need=Math.max(need,y+hy-top)}
-  need=Math.max(0,Math.min(56,Math.round(need/4)*4));if(need!==shift){shift=need;hero.style.paddingTop=(34+shift)+"px"}};
+  let need=0;for(const[x,y,r0]of a){const r=r0*.78,nx=Math.max(L-8,Math.min(x,R+8)),dx=x-nx;if(Math.abs(dx)>=r)continue;const hy=Math.sqrt(r*r-dx*dx);   // la boule touche-t-elle la zone de texte ?
+   if(y+hy>top&&y-hy<bot)need=Math.max(need,y+hy+4-top)}
+  need=Math.max(0,Math.min(68,Math.round(need/4)*4));if(need!==shift){shift=need;hero.style.paddingTop=(34+shift)+"px"}};
  setInterval(adj,1500);setTimeout(adj,800);setTimeout(adj,2500);addEventListener("resize",()=>setTimeout(adj,300))})();
 /* en-tête compact (style Apple Météo) : en défilant, le titre de chaque page (ou ville + température sur Aujourd'hui) fond dans une barre fixe floutée en haut */
 (()=>{const cmp=$("cmp"),top=document.querySelector("#v-today .top"),hero=document.querySelector("#v-today .hero");let tk=false,lc="",lt="";
