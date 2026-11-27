@@ -595,7 +595,7 @@ const FX=(()=>{
  }
  function mkFog(c0){
   const w=1100,h=260,c=off(w,h),g=c.getContext("2d"),r=srand(5);
-  for(let i=0;i<9;i++){const x=w*(i+.5)/9+r()*60-30,y=h*(.35+.3*r()),rx=170+r()*130,ry=55+r()*50;g.save();g.translate(x,y);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,`rgba(${c0},.55)`);gr.addColorStop(1,`rgba(${c0},0)`);g.fillStyle=gr;g.fillRect(-rx,-rx,rx*2,rx*2);g.restore()}
+  for(let i=0;i<9;i++){const x=w*(i+.5)/9+r()*60-30,y=h*(.35+.3*r()),rx=170+r()*130,ry=55+r()*50;for(const dx of[-w,0,w]){g.save();g.translate(x+dx,y);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,`rgba(${c0},.55)`);gr.addColorStop(1,`rgba(${c0},0)`);g.fillStyle=gr;g.fillRect(-rx,-rx,rx*2,rx*2);g.restore()}}
   return c;
  }
 
