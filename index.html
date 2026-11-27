@@ -77,7 +77,11 @@ canvas{width:100%;display:block}
 #cmp b{display:block;font-size:20px;font-weight:600;line-height:1.2}#cmp span{display:block;font-size:14px;font-weight:500;margin-top:2px;opacity:.92}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
 .fxon .hero{padding:34px 0 64px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl,.fxon .top .loc,.fxon .top .date{text-shadow:0 0 2px rgba(0,0,0,.28),0 1px 12px rgba(0,0,0,.4),0 0 30px rgba(0,0,0,.28)}.fxon .hero .hl{color:var(--txt);opacity:.92}.fxon .top .date{color:var(--txt);opacity:.85}
-html.daytxt #v-today .top,html.daytxt #v-today .hero{--txt:#0b1220;--mut:rgba(11,18,32,.7)}   /* texte noir uniquement devant le ciel de la page principale */
+/* fond selon la météo désactivé : textes noirs devant le ciel de la page principale (uniquement ces textes) */
+html.skytxt #v-today .top,html.skytxt #v-today .hero{--txt:#02060f;--mut:#02060f}
+html.skytxt .fxon .hero .t,html.skytxt .fxon .hero .c,html.skytxt .fxon .hero .hl,html.skytxt .fxon .top .loc,html.skytxt .fxon .top .date{color:#02060f;opacity:1;text-shadow:0 0 1px rgba(255,255,255,.3)}
+html.skytxt .fxon .hero .t{font-weight:300}html.skytxt .fxon .hero .c,html.skytxt .fxon .top .loc{font-weight:700}html.skytxt .fxon .hero .hl,html.skytxt .fxon .top .date{font-weight:600}
+html.daytxt{--txt:#0b1220;--mut:rgba(11,18,32,.7);--acc:#0a5fb0;--onacc:#fff}
 html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5ec8ff}
 html[data-theme=light] nav{--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9}
 html[data-theme=dark] nav{--line:rgba(255,255,255,.14)}
@@ -1054,7 +1058,7 @@ function skySet(a,c){
  else if(!skyTm)skyTm=setInterval(skyTick,200);
 }
 function updateSky(){
- if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;
+ if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;document.documentElement.classList.toggle("skytxt",!S.dyn);
  if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:.1),was=h_.classList.contains("daytxt");
  h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&["rain","shower","storm","sleet"].includes(SKYS.c));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
