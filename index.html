@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#0b1a3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Météo Pro</title>
 <script>document.documentElement.dataset.theme="dark"</script>
@@ -17,6 +19,7 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
 html{background:var(--bg2)}
+#edgeTop{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);z-index:9999;pointer-events:none;background:var(--bg1)}
 #sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
@@ -145,7 +148,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 </style>
 </head>
 <body class="sunny nofade">
-<div id="sky"></div>
+<div id="sky"></div><div id="edgeTop"></div>
 <canvas id="fx"></canvas>
 <div id="cmp"><b id="cmpC"></b><span id="cmpT"></span></div>
 <div class="app">
