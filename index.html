@@ -1036,19 +1036,13 @@ const hex2=h=>{h=(h||"").trim();if(/^rgb/i.test(h))return h.match(/[\d.]+/g).sli
 function skyDefault(){const cs=getComputedStyle(document.documentElement);return[hex2(cs.getPropertyValue("--bg1")),hex2(cs.getPropertyValue("--bg2"))]}
 function skyPaint(){
  const a=skyCur.slice(0,3),c=skyCur.slice(3);
- skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);setTheme(rgbs(a));
+ skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
 }
 function skyTick(){
  const k=skyDur<=0?1:Math.min(1,(Date.now()-skyT0)/skyDur);
  skyCur=skyFrom.map((v,i)=>v+(skyTo[i]-v)*k);skyPaint();
  if(k>=1){clearInterval(skyTm);skyTm=0}
 }
-/* barre de titre de l'app (bureau/téléphone) : on remplace la balise theme-color pour que le navigateur relise toujours la couleur, identique au haut du ciel */
-let tcLast="",tcAt=0,tcTm=0;
-function setTheme(col){
- if(col===tcLast)return;tcLast=col;
- const go=()=>{tcAt=Date.now();const o=document.querySelector('meta[name="theme-color"]'),m=document.createElement("meta");m.name="theme-color";m.content=tcLast;o?o.replaceWith(m):document.head.appendChild(m);tcm=m};
- clearTimeout(tcTm);if(Date.now()-tcAt>1500)go();else tcTm=setTimeout(go,1500)}
 function skySet(a,c){
  const to=[...a,...c];
  if(skyTo&&to.every((v,i)=>Math.abs(v-skyTo[i])<.5))return;
@@ -1060,7 +1054,7 @@ function skySet(a,c){
 function updateSky(){
  if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;
  if(!SKYS)return;const b=document.body,h_=document.documentElement,day=SKYS.dk<.45,was=h_.classList.contains("daytxt");
- h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&(SKYS.cl>=55||["rain","shower","storm","sleet","snow","fog"].includes(SKYS.c)));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
+ h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&(["rain","shower","storm","sleet"].includes(SKYS.c)||(SKYS.dk>.3&&SKYS.cl>=55)));   // nuages blancs en plein jour → texte foncé ; pluie ou lumière faible → texte blancif(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
  const th=document.documentElement.dataset.theme||"dark",[a,c]=skyColors(SKYS.dk,SKYS.c,SKYS.cl,th);
  skySet(a,c);
