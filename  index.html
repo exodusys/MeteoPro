@@ -82,7 +82,8 @@ html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5
 html[data-theme=light] nav{--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9}
 html[data-theme=dark] nav{--line:rgba(255,255,255,.14)}
 html.daytxt.cloudtxt .fxon .hero .t,html.daytxt.cloudtxt .fxon .hero .c,html.daytxt.cloudtxt .fxon .hero .hl,html.daytxt.cloudtxt .fxon .top .loc,html.daytxt.cloudtxt .fxon .top .date,html.daytxt.cloudtxt #cmp{color:#fff;--mut:rgba(255,255,255,.85);text-shadow:0 0 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.5),0 0 30px rgba(0,0,0,.35)}
-html.daytxt:not(.cloudtxt) .fxon .hero .t,html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .loc,html.daytxt:not(.cloudtxt) .fxon .top .date{text-shadow:0 0 2px rgba(255,255,255,.55),0 1px 12px rgba(255,255,255,.7),0 0 32px rgba(255,255,255,.55)}
+html.daytxt:not(.cloudtxt) .fxon .hero .t,html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .loc,html.daytxt:not(.cloudtxt) .fxon .top .date{color:#02060f;opacity:1;--mut:#02060f;text-shadow:0 0 1px rgba(255,255,255,.28)}
+html.daytxt:not(.cloudtxt) .fxon .hero .t{font-weight:300}html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .top .loc{font-weight:700}html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .date{font-weight:600}
 .card,.icbtn{transition:background .9s,color .9s,box-shadow .9s,border-color .9s}
 .reg{position:absolute;left:10px;top:10px;z-index:500;background:rgba(10,18,40,.72);color:#fff;font:600 12px Inter,sans-serif;padding:6px 10px;border-radius:10px;backdrop-filter:blur(8px);pointer-events:none}
 .chip.sel i{position:absolute;inset:-7px;border-radius:18px;border:2px solid #5ec8ff;animation:pulse 1.9s ease-out infinite;pointer-events:none}
@@ -1053,7 +1054,7 @@ function skySet(a,c){
 }
 function updateSky(){
  if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;
- if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<.45,was=h_.classList.contains("daytxt");
+ if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:.12),was=h_.classList.contains("daytxt");
  h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&(SKYS.cl>=55||["rain","shower","storm","sleet","snow","fog"].includes(SKYS.c)));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
  const th=document.documentElement.dataset.theme||"dark",[a,c]=skyColors(SKYS.dk,SKYS.c,SKYS.cl,th);
