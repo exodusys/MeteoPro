@@ -1034,7 +1034,8 @@ const rgbs=c=>"rgb("+c.map(Math.round).join(",")+")";
 const skyEl=document.getElementById("sky"),tcm=document.querySelector('meta[name="theme-color"]');
 let skyFast=false,lastDyn,skyCur=null,skyFrom=null,skyTo=null,skyT0=0,skyDur=0,skyTm=0;
 const hex2=h=>{h=(h||"").trim();if(/^rgb/i.test(h))return h.match(/[\d.]+/g).slice(0,3).map(Number);h=h.replace("#","");if(h.length==3)h=h.split("").map(x=>x+x).join("");return[0,2,4].map(i=>parseInt(h.substr(i,2),16)||0)};
-function skyDefault(){const cs=getComputedStyle(document.documentElement);return[hex2(cs.getPropertyValue("--bg1")),hex2(cs.getPropertyValue("--bg2"))]}
+function skyDefault(){const cs=getComputedStyle(document.documentElement),dk=(document.documentElement.dataset.theme||"dark")!="light",lt=c=>dk?c.map((v,i)=>Math.round(v+([86,140,214][i]-v)*.26)):c;   // thème sombre sans fond selon la météo : un peu moins sombre
+ return[lt(hex2(cs.getPropertyValue("--bg1"))),lt(hex2(cs.getPropertyValue("--bg2")))]}
 function skyPaint(){
  const a=skyCur.slice(0,3),c=skyCur.slice(3);
  skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
