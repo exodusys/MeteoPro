@@ -1055,8 +1055,8 @@ function skySet(a,c){
 }
 function updateSky(){
  if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;
- if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:-1),was=h_.classList.contains("daytxt");
- h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&(SKYS.cl>=55||["rain","shower","storm","sleet","snow","fog"].includes(SKYS.c)));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
+ if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:.1),was=h_.classList.contains("daytxt");
+ h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&["rain","shower","storm","sleet"].includes(SKYS.c));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
  const th=document.documentElement.dataset.theme||"dark",[a,c]=skyColors(SKYS.dk,SKYS.c,SKYS.cl,th);
  skySet(a,c);
