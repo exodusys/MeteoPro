@@ -511,7 +511,7 @@ function quick(E){
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 3px),transparent);mask-image:linear-gradient(#000 calc(100% - 3px),transparent)";document.body.appendChild(cvB);
+ cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -952,13 +952,6 @@ const FX=(()=>{
   x.fillStyle=g;x.fillRect(0,0,pw,ph);
   const Te=tY*dpr;
   for(const c of[cv3,cv4])if(c.width)x.drawImage(c,0,Te,c.width,ph,0,0,pw,ph)
-  /* bord des dalles : trait fin là où une dalle passe sous la bande */
-  x.save();x.lineWidth=Math.max(1,dpr);x.lineCap="round";
-  for(const e of document.querySelectorAll("#v-today .card")){const r=e.getBoundingClientRect();if(r.width<40||r.top>=bh-1||r.bottom<=bh-1)continue;
-   const y=(bh-1.5)*dpr,l=(r.left+10)*dpr,rr=(r.right-10)*dpr,gg=x.createLinearGradient(l,0,rr,0);
-   gg.addColorStop(0,"rgba(255,255,255,0)");gg.addColorStop(.06,"rgba(255,255,255,.34)");gg.addColorStop(.94,"rgba(255,255,255,.34)");gg.addColorStop(1,"rgba(255,255,255,0)");
-   x.strokeStyle=gg;x.beginPath();x.moveTo(l,y);x.lineTo(rr,y);x.stroke()}
-  x.restore();
   const ce=document.getElementById("cmpC"),ct=document.getElementById("cmpT");
   if(ce&&ce.textContent){const r1=ce.getBoundingClientRect(),r2=ct&&ct.style.display!=="none"?ct.getBoundingClientRect():r1,l=Math.min(r1.left,r2.left),rr=Math.max(r1.right,r2.right),tp=r1.top,bt=r2.bottom;
    x.save();x.translate((l+rr)/2*dpr,(tp+bt)/2*dpr);x.scale(((rr-l)/2+30)*dpr,((bt-tp)/2+14)*dpr);
