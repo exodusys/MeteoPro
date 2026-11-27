@@ -82,8 +82,7 @@ html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5
 html[data-theme=light] nav{--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9}
 html[data-theme=dark] nav{--line:rgba(255,255,255,.14)}
 html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txb #cmp{color:#02060f;opacity:1;--mut:#02060f;text-shadow:0 0 1px rgba(255,255,255,.28)}
-html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date{font-weight:700}
-html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date{font-weight:700;-webkit-text-stroke:.35px #02060f}html.txb .fxon .hero .t{font-weight:600;-webkit-text-stroke:.8px #02060f}
+html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date{font-weight:700}html.txb .fxon .hero .t,html.txw .fxon .hero .t{font-weight:800}
 html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date,html.txw #cmp{color:#fff;opacity:1;--mut:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)}
 .top .loc{position:relative;top:8px}
 .card,.icbtn{transition:background .9s,color .9s,box-shadow .9s,border-color .9s}
@@ -931,6 +930,7 @@ const FX=(()=>{
   drawStorm(t);
   drawCardFx(dt,t,rI,sI);
  }
+ const LM={};
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
  return{
   set(o){Object.assign(st,o);setup()},
@@ -939,6 +939,13 @@ const FX=(()=>{
   pause(){run=false},
   stop(){run=false;cv.style.display="none";cv2.style.display="none";cv3.style.display="none"},
   resize(){if(W||run){W=0;resize()}},
+  lum(r,base){const n=8;if(!LM.c){LM.c=document.createElement("canvas");LM.c.width=LM.c.height=n;LM.x=LM.c.getContext("2d",{willReadFrequently:true})}
+   const x=LM.x;x.globalCompositeOperation="source-over";x.fillStyle="rgb("+base.map(Math.round)+")";x.fillRect(0,0,n,n);
+   for(const c of[cv3,cv]){if(c.style.display==="none"||!c.width)continue;const cr=c.getBoundingClientRect();if(!cr.width)continue;const k=c.width/cr.width;
+    let sx=(r.left-cr.left)*k,sy=(r.top-cr.top)*k,sw=r.width*k,sh=r.height*k;
+    const x0=Math.max(0,sx),y0=Math.max(0,sy),x1=Math.min(c.width,sx+sw),y1=Math.min(c.height,sy+sh);if(x1-x0<1||y1-y0<1)continue;
+    const dx=(x0-sx)/sw*n,dy=(y0-sy)/sh*n,dw=(x1-x0)/sw*n,dh=(y1-y0)/sh*n;x.drawImage(c,x0,y0,x1-x0,y1-y0,dx,dy,dw,dh)}
+   const d=x.getImageData(0,0,n,n).data;let t=0;for(let i=0;i<d.length;i+=4)t+=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];return t/(n*n)/255},
   astro(){return A},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
  };
@@ -1454,6 +1461,22 @@ segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.qu
 ["uT","uW","uP","uH"].forEach(id=>{document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v==S[id]));segs(id,id,()=>{render();drawRadar();drawCities()})});
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
+/* couleur des textes du haut : s'adapte en direct à la luminosité de ce qu'il y a derrière (blanc → gris → noir) */
+(()=>{const T=[["hT"],["hC"],["hHL"]].map(a=>$(a[0])),P=document.querySelector("#v-today .top .loc"),D=document.querySelector("#v-today .top .date"),CM=$("cmpC"),CT=$("cmpT");
+ const els=[...T,P,D,CM,CT].filter(Boolean),lv=new Map();els.forEach(e=>{e.style.transition="color .6s ease"});
+ const lerp=(a,b,t)=>a+(b-a)*t,DK=[2,6,15];
+ function tick(){const R=document.documentElement;
+  if(document.hidden||!(R.classList.contains("txb")||R.classList.contains("txw"))||!$("v-today").classList.contains("fxon")){els.forEach(e=>{e.style.removeProperty("color");e.style.removeProperty("text-shadow")});return}
+  const W=innerHeight||1;
+  for(const e of els){
+   const r=e.getBoundingClientRect();if(!r.width||!r.height)continue;
+   if(e.closest("#cmp")&&getComputedStyle($("cmp")).visibility==="hidden")continue;
+   const t=Math.max(0,Math.min(1,(r.top+r.height/2)/W)),sc=skyCur||[11,26,58,29,63,122],base=[0,1,2].map(i=>lerp(sc[i],sc[i+3],t));
+   let L=FX.lum(r,base);const o=lv.get(e);L=o==null?L:o+(L-o)*.5;lv.set(e,L);
+   const g=Math.max(0,Math.min(1,(L-.42)/.12)),c=[0,1,2].map(i=>Math.round(lerp(255,DK[i],g))),dark=g>.5;
+   e.style.setProperty("color","rgb("+c+")","important");
+   e.style.setProperty("text-shadow",dark?"0 0 1px rgba(255,255,255,.28)":"0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)","important")}}
+ setInterval(tick,350);setTimeout(tick,1200);window.__adaptTick=tick})();
 /* le texte (température, condition, max/min) se décale vers le bas pour ne jamais recouvrir le soleil ni la lune */
 (()=>{const hero=document.querySelector("#v-today .hero"),els=["hT","hC","hHL"].map($);let shift=0;hero.style.transition="padding-top .7s ease";
  const tw=e=>{const r=document.createRange();r.selectNodeContents(e);const b=r.getBoundingClientRect();return[b.left,b.right]};
