@@ -83,7 +83,7 @@ html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5
 html[data-theme=light] nav{--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9}
 html[data-theme=dark] nav{--line:rgba(255,255,255,.14)}
 html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txb #cmp{color:#02060f;opacity:1;--mut:#02060f;text-shadow:0 0 1px rgba(255,255,255,.28)}
-html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date{font-weight:600}html.txb .fxon .hero .t,html.txw .fxon .hero .t{font-weight:700}
+html.txb .fxon .hero .t,html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date,html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date{font-weight:600}html.txb .fxon .hero .t,html.txw .fxon .hero .t{font-weight:500}
 html.txb .fxon .hero .c,html.txb .fxon .hero .hl,html.txb .fxon .top .loc,html.txb .fxon .top .date{-webkit-text-stroke:.3px #02060f}html.txb .fxon .hero .t{-webkit-text-stroke:.8px #02060f}
 html.txw .fxon .hero .t,html.txw .fxon .hero .c,html.txw .fxon .hero .hl,html.txw .fxon .top .loc,html.txw .fxon .top .date,html.txw #cmp{color:#fff;opacity:1;--mut:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)}
 .top .loc{position:relative;top:8px}
@@ -511,7 +511,7 @@ function quick(E){
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";document.body.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;document.body.appendChild(cv4);cv3.style.position=cv4.style.position="fixed";cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
+ cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -938,9 +938,10 @@ const FX=(()=>{
  }
 
  /* bande du haut : quand on descend, le soleil/la lune, les nuages et la pluie restent visibles dans une bande fixe sous le titre compact */
+ let skyT=0;
  function drawBand(){
-  const sy=window.scrollY||0,a=Math.max(0,Math.min(1,(sy-70)/90)),as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Math.min(sy,Tm),tr="translate3d(0,"+(-tY)+"px,0)";
-  if(cv3.style.transform!==tr){cv3.style.transform=tr;cv4.style.transform=tr}
+  const sy=window.scrollY||0,as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Tm,a=Math.max(0,Math.min(1,(sy-(Tm-24))/24));
+  if(Math.abs(Tm-skyT)>2){skyT=Tm;skyw.style.top=(-Tm)+"px"}
   if(a<=0){cvB.style.display="none";return}
   cvB.style.display="block";cvB.style.opacity=a;
   const bh=cvB.getBoundingClientRect().height||100,pw=Math.round(W*dpr),ph=Math.round(bh*dpr);
