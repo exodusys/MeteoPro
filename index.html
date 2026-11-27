@@ -73,7 +73,7 @@ canvas{width:100%;display:block}
 .chip .wi{width:1.55em;height:1.55em;vertical-align:-.42em;margin:-5px 3px -5px 0}
 .ct svg.ci{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 #cmp{position:fixed;left:0;right:0;top:0;z-index:20;text-align:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 26px;pointer-events:none;opacity:0;visibility:hidden}
-#cmp{text-shadow:0 1px 10px rgba(0,0,0,.35)}
+#cmp::before{content:"";position:absolute;inset:0;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);z-index:-1}
 #cmp b{display:block;font-size:20px;font-weight:600;line-height:1.2}#cmp span{display:block;font-size:14px;font-weight:500;margin-top:2px;opacity:.92}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
 .fxon .hero{padding:34px 0 26px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl,.fxon .top .loc,.fxon .top .date{text-shadow:0 0 2px rgba(0,0,0,.28),0 1px 12px rgba(0,0,0,.4),0 0 30px rgba(0,0,0,.28)}.fxon .hero .hl{color:var(--txt);opacity:.92}.fxon .top .date{color:var(--txt);opacity:.85}
@@ -689,7 +689,7 @@ const FX=(()=>{
  function drawMoon(){
   if(st.moon==null||st.dk<.2)return;
   const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.012)return;
-  let v=(1-st.cl/100*.92)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c)||st.c=="fog")v*=.1;if(v<.03)return;
+  let v=(1-st.cl/100*.62)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c))v*=.1;else if(st.c=="fog")v*=.7;v=Math.min(1,v*1.12);if(v<.03)return;
   const m=st.moon;let an=m.az;if(m.south){an=an>0?an-Math.PI:an+Math.PI}
   const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.40-.3*Math.min(1,m.alt/(1.22))),r=Math.min(32,W*.08);
   A.push([x,y,r*1.5+8]);
@@ -697,7 +697,7 @@ const FX=(()=>{
   const key=Math.round(st.ph*500)+"|"+Math.round(m.ang*50);
   if(key!==moonKey||!moonSp){moonKey=key;moonSp=mkMoonSpr(moonTx,st.ph*PI2,m.ang,256)}
   const g=ctx.createRadialGradient(x,y,r*.7,x,y,r*7);g.addColorStop(0,`rgba(196,210,255,${.34*v*(.25+.75*ill)})`);g.addColorStop(.35,`rgba(190,205,255,${.1*v*(.25+.75*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);
-  ctx.save();ctx.translate(x,y);ctx.rotate(m.para);ctx.globalAlpha=v;ctx.imageSmoothingQuality="high";ctx.drawImage(moonSp,-r,-r,r*2,r*2);ctx.restore();ctx.globalAlpha=1;
+  ctx.save();ctx.translate(x,y);ctx.rotate(m.para);ctx.globalAlpha=v;ctx.imageSmoothingQuality="high";ctx.drawImage(moonSp,-r,-r,r*2,r*2);if(st.cl>25){ctx.globalCompositeOperation="lighter";ctx.globalAlpha=v*.3*Math.min(1,st.cl/70);ctx.drawImage(moonSp,-r,-r,r*2,r*2)}ctx.restore();ctx.globalAlpha=1;
  }
 
  /* ---------- couches nuageuses (bruit fractal, bords éclairés) ---------- */
@@ -1036,13 +1036,19 @@ const hex2=h=>{h=(h||"").trim();if(/^rgb/i.test(h))return h.match(/[\d.]+/g).sli
 function skyDefault(){const cs=getComputedStyle(document.documentElement);return[hex2(cs.getPropertyValue("--bg1")),hex2(cs.getPropertyValue("--bg2"))]}
 function skyPaint(){
  const a=skyCur.slice(0,3),c=skyCur.slice(3);
- skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
+ skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);setTheme(rgbs(a));
 }
 function skyTick(){
  const k=skyDur<=0?1:Math.min(1,(Date.now()-skyT0)/skyDur);
  skyCur=skyFrom.map((v,i)=>v+(skyTo[i]-v)*k);skyPaint();
  if(k>=1){clearInterval(skyTm);skyTm=0}
 }
+/* barre de titre de l'app (bureau/téléphone) : on remplace la balise theme-color pour que le navigateur relise toujours la couleur, identique au haut du ciel */
+let tcLast="",tcAt=0,tcTm=0;
+function setTheme(col){
+ if(col===tcLast)return;tcLast=col;
+ const go=()=>{tcAt=Date.now();const o=document.querySelector('meta[name="theme-color"]'),m=document.createElement("meta");m.name="theme-color";m.content=tcLast;o?o.replaceWith(m):document.head.appendChild(m);tcm=m};
+ clearTimeout(tcTm);if(Date.now()-tcAt>1500)go();else tcTm=setTimeout(go,1500)}
 function skySet(a,c){
  const to=[...a,...c];
  if(skyTo&&to.every((v,i)=>Math.abs(v-skyTo[i])<.5))return;
