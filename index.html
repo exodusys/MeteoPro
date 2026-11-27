@@ -16,7 +16,7 @@
 html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);--line:rgba(11,26,58,.1);--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9;--onacc:#fff;--track:rgba(11,26,58,.12);--track2:rgba(11,26,58,.18);--seg:rgba(11,26,58,.08);--segon:rgba(255,255,255,.9);--city1:rgba(255,255,255,.85);--city2:rgba(255,255,255,.45);--nav:rgba(255,255,255,.78);--toastbg:#0b1a3a;--toastfg:#fff;--grid:rgba(11,26,58,.08);color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
-html{background:var(--bg2)}
+html{background:var(--bg2);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 #sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
@@ -76,17 +76,17 @@ canvas{width:100%;display:block}
 #cmp::before{content:"";position:absolute;inset:0;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);z-index:-1}
 #cmp b{display:block;font-size:20px;font-weight:600;line-height:1.2}#cmp span{display:block;font-size:14px;font-weight:500;margin-top:2px;opacity:.92}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
-.fxon .hero{padding:34px 0 26px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl,.fxon .top .loc,.fxon .top .date{text-shadow:0 0 2px rgba(0,0,0,.28),0 1px 12px rgba(0,0,0,.4),0 0 30px rgba(0,0,0,.28)}.fxon .hero .hl{color:var(--txt);opacity:.92}.fxon .top .date{color:var(--txt);opacity:.85}
+.fxon .hero{padding:34px 0 26px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl,.fxon .top .loc,.fxon .top .date{text-shadow:0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)}.fxon .hero .hl{color:var(--txt);opacity:.92}.fxon .top .date{color:var(--txt);opacity:.85}
 /* fond selon la météo désactivé : textes noirs devant le ciel de la page principale (uniquement ces textes) */
 html.skytxt #v-today .top,html.skytxt #v-today .hero{--txt:#02060f;--mut:#02060f}
-html.skytxt .fxon .hero .t,html.skytxt .fxon .hero .c,html.skytxt .fxon .hero .hl,html.skytxt .fxon .top .loc,html.skytxt .fxon .top .date{color:#02060f;opacity:1;text-shadow:0 0 1px rgba(255,255,255,.3)}
+html.skytxt .fxon .hero .t,html.skytxt .fxon .hero .c,html.skytxt .fxon .hero .hl,html.skytxt .fxon .top .loc,html.skytxt .fxon .top .date{color:#02060f;opacity:1;text-shadow:none}
 html.skytxt .fxon .hero .t{font-weight:300}html.skytxt .fxon .hero .c,html.skytxt .fxon .top .loc{font-weight:700}html.skytxt .fxon .hero .hl,html.skytxt .fxon .top .date{font-weight:600}
 html.daytxt{--txt:#0b1220;--mut:rgba(11,18,32,.7);--acc:#0a5fb0;--onacc:#fff}
 html[data-theme=dark].daytxt nav{--txt:#fff;--mut:rgba(255,255,255,.62);--acc:#5ec8ff}
 html[data-theme=light] nav{--txt:#0b1a3a;--mut:rgba(11,26,58,.62);--acc:#0a74c9}
 html[data-theme=dark] nav{--line:rgba(255,255,255,.14)}
 html.daytxt.cloudtxt .fxon .hero .t,html.daytxt.cloudtxt .fxon .hero .c,html.daytxt.cloudtxt .fxon .hero .hl,html.daytxt.cloudtxt .fxon .top .loc,html.daytxt.cloudtxt .fxon .top .date,html.daytxt.cloudtxt #cmp{color:#fff;--mut:rgba(255,255,255,.85);text-shadow:0 0 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.5),0 0 30px rgba(0,0,0,.35)}
-html.daytxt:not(.cloudtxt) .fxon .hero .t,html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .loc,html.daytxt:not(.cloudtxt) .fxon .top .date{color:#02060f;opacity:1;--mut:#02060f;text-shadow:0 0 1px rgba(255,255,255,.28)}
+html.daytxt:not(.cloudtxt) .fxon .hero .t,html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .loc,html.daytxt:not(.cloudtxt) .fxon .top .date{color:#02060f;opacity:1;--mut:#02060f;text-shadow:none}
 html.daytxt:not(.cloudtxt) .fxon .hero .t{font-weight:300}html.daytxt:not(.cloudtxt) .fxon .hero .c,html.daytxt:not(.cloudtxt) .fxon .top .loc{font-weight:700}html.daytxt:not(.cloudtxt) .fxon .hero .hl,html.daytxt:not(.cloudtxt) .fxon .top .date{font-weight:600}
 .card,.icbtn{transition:background .9s,color .9s,box-shadow .9s,border-color .9s}
 .reg{position:absolute;left:10px;top:10px;z-index:500;background:rgba(10,18,40,.72);color:#fff;font:600 12px Inter,sans-serif;padding:6px 10px;border-radius:10px;backdrop-filter:blur(8px);pointer-events:none}
@@ -1457,7 +1457,7 @@ segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.qu
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
 /* le texte (température, condition, max/min) se décale vers le bas pour ne jamais recouvrir le soleil ni la lune */
-(()=>{const hero=document.querySelector("#v-today .hero"),els=["hT","hC","hHL"].map($);let shift=0;hero.style.transition="padding-top .7s ease";
+(()=>{const hero=document.querySelector("#v-today .hero"),els=["hT","hC","hHL"].map($);let shift=0;
  const tw=e=>{const r=document.createRange();r.selectNodeContents(e);const b=r.getBoundingClientRect();return[b.left,b.right]};
  const adj=()=>{if(!document.documentElement.classList.contains("fxon")&&!document.body.classList.contains("fxon")&&!hero.closest(".fxon"))return;
   if(!$("v-today").classList.contains("on")||scrollY>5)return;
