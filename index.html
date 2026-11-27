@@ -71,6 +71,9 @@ canvas{width:100%;display:block}
 .wi{width:1em;height:1em;vertical-align:-.14em;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
 .chip .wi{width:1.55em;height:1.55em;vertical-align:-.42em;margin:-5px 3px -5px 0}
 .ct svg.ci{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#cmp{position:fixed;left:0;right:0;top:0;z-index:20;text-align:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 26px;pointer-events:none;opacity:0;visibility:hidden}
+#cmp::before{content:"";position:absolute;inset:0;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);z-index:-1}
+#cmp b{display:block;font-size:20px;font-weight:600;line-height:1.2}#cmp span{display:block;font-size:14px;font-weight:500;margin-top:2px;opacity:.92}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
 .fxon .hero{padding:34px 0 64px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl{text-shadow:0 1px 14px rgba(0,0,0,.22)}
 html.daytxt{--txt:#0b1220;--mut:rgba(11,18,32,.7);--acc:#0a5fb0;--onacc:#fff}
@@ -137,6 +140,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 <body class="sunny nofade">
 <div id="sky"></div>
 <canvas id="fx"></canvas>
+<div id="cmp"><b id="cmpC"></b><span id="cmpT"></span></div>
 <div class="app">
 
 <!-- AUJOURD'HUI -->
@@ -604,8 +608,10 @@ const FX=(()=>{
   if(st.c!="storm")nextBolt=0;
  }
  function resize(){
-  const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;cv3.style.width=W+"px";cv3.style.height=H+"px";
+  /* Safari mobile : la barre d'adresse qui se réduit/s'agrandit change innerHeight → on garde la hauteur maximale et on ignore ces variations (sinon tout est recalculé et étiré) */
+  const w=innerWidth,tch=matchMedia("(pointer:coarse)").matches,h=tch?Math.max(innerHeight,Math.min(screen.height||0,innerHeight+260)):innerHeight;
+  if(w==W&&(h==H||(tch&&Math.abs(h-H)<260)))return;
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;cv3.style.width=W+"px";cv3.style.height=H+"px";for(const c of[cv,cv2]){c.style.width=W+"px";c.style.height=H+"px"}
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -1439,6 +1445,14 @@ segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.qu
 ["uT","uW","uP","uH"].forEach(id=>{document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v==S[id]));segs(id,id,()=>{render();drawRadar();drawCities()})});
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
+/* en-tête compact (style Apple Météo) : en défilant, ville + température fondent dans une barre fixe en haut */
+(()=>{const cmp=$("cmp"),top=document.querySelector("#v-today .top"),hero=document.querySelector("#v-today .hero");let tk=false,lc="",lt="";
+ const upd=()=>{tk=false;const y=Math.max(0,scrollY),on=$("v-today").classList.contains("on");
+  const a=on?Math.max(0,Math.min(1,(y-70)/90)):0,b=on?Math.max(0,Math.min(1,y/150)):0;
+  top.style.opacity=on?1-Math.min(1,y/110):1;hero.style.opacity=on?1-Math.min(1,b*1.25):1;
+  cmp.style.visibility=a>0?"visible":"hidden";cmp.style.opacity=a;
+  if(a>0){const c=$("citySub").style.display==="none"?$("cityName").textContent.split(",")[0]:($("citySubT").textContent.split(",")[0]||"Ma position"),t=$("hT").textContent+" | "+$("hC").textContent;if(c!==lc){lc=c;$("cmpC").textContent=c}if(t!==lt){lt=t;$("cmpT").textContent=t}}};
+ addEventListener("scroll",()=>{if(!tk){tk=true;requestAnimationFrame(upd)}},{passive:true});upd()})();
 document.addEventListener("visibilitychange",()=>{if(document.hidden)FX.pause();else{if(S.anim&&$("v-today").classList.contains("on"))FX.start();if(mapOn())drawRadar();refresh(false)}});
 applyTheme();
 addEventListener("online",()=>refresh(false));
