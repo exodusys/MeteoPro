@@ -1445,14 +1445,18 @@ segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.qu
 ["uT","uW","uP","uH"].forEach(id=>{document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v==S[id]));segs(id,id,()=>{render();drawRadar();drawCities()})});
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
-/* en-tête compact (style Apple Météo) : en défilant, ville + température fondent dans une barre fixe en haut */
+/* en-tête compact (style Apple Météo) : en défilant, le titre de chaque page (ou ville + température sur Aujourd'hui) fond dans une barre fixe floutée en haut */
 (()=>{const cmp=$("cmp"),top=document.querySelector("#v-today .top"),hero=document.querySelector("#v-today .hero");let tk=false,lc="",lt="";
- const upd=()=>{tk=false;const y=Math.max(0,scrollY),on=$("v-today").classList.contains("on");
-  const a=on?Math.max(0,Math.min(1,(y-70)/90)):0,b=on?Math.max(0,Math.min(1,y/150)):0;
-  top.style.opacity=on?1-Math.min(1,y/110):1;hero.style.opacity=on?1-Math.min(1,b*1.25):1;
+ const upd=()=>{tk=false;const y=Math.max(0,scrollY),vw=document.querySelector(".view.on"),today=vw&&vw.id==="v-today",h1=vw&&vw.querySelector("h1");
+  top.style.opacity=hero.style.opacity=1;if(h1)h1.style.opacity=1;
+  let a=0,c="",t="";
+  if(today){a=Math.max(0,Math.min(1,(y-70)/90));top.style.opacity=1-Math.min(1,y/110);hero.style.opacity=1-Math.min(1,y/120);
+   if(a>0){c=$("citySub").style.display==="none"?$("cityName").textContent.split(",")[0]:($("citySubT").textContent.split(",")[0]||"Ma position");t=$("hT").textContent+" | "+$("hC").textContent}}
+  else if(h1){a=Math.max(0,Math.min(1,(y-24)/36));h1.style.opacity=1-Math.min(1,y/50);c=h1.textContent}
   cmp.style.visibility=a>0?"visible":"hidden";cmp.style.opacity=a;
-  if(a>0){const c=$("citySub").style.display==="none"?$("cityName").textContent.split(",")[0]:($("citySubT").textContent.split(",")[0]||"Ma position"),t=$("hT").textContent+" | "+$("hC").textContent;if(c!==lc){lc=c;$("cmpC").textContent=c}if(t!==lt){lt=t;$("cmpT").textContent=t}}};
- addEventListener("scroll",()=>{if(!tk){tk=true;requestAnimationFrame(upd)}},{passive:true});upd()})();
+  if(a>0){if(c!==lc){lc=c;$("cmpC").textContent=c}if(t!==lt){lt=t;$("cmpT").textContent=t;$("cmpT").style.display=t?"":"none"}}};
+ addEventListener("scroll",()=>{if(!tk){tk=true;requestAnimationFrame(upd)}},{passive:true});
+ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>setTimeout(upd,60)));upd()})();
 document.addEventListener("visibilitychange",()=>{if(document.hidden)FX.pause();else{if(S.anim&&$("v-today").classList.contains("on"))FX.start();if(mapOn())drawRadar();refresh(false)}});
 applyTheme();
 addEventListener("online",()=>refresh(false));
