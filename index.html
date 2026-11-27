@@ -511,7 +511,7 @@ function quick(E){
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
+ cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:absolute;left:0;top:0;width:100%;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -938,10 +938,10 @@ const FX=(()=>{
  }
 
  /* bande du haut : quand on descend, le soleil/la lune, les nuages et la pluie restent visibles dans une bande fixe sous le titre compact */
- let skyT=0;
+ let skyT=0,skyFx=false;
  function drawBand(){
   const sy=window.scrollY||0,as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Tm,a=Math.max(0,Math.min(1,(sy-(Tm-24))/24));
-  if(Math.abs(Tm-skyT)>2){skyT=Tm;skyw.style.top=(-Tm)+"px"}
+  {const f=sy>=Tm;if(f!==skyFx||(f&&Math.abs(Tm-skyT)>2)){skyFx=f;skyT=Tm;skyw.style.position=f?"fixed":"absolute";skyw.style.top=f?(-Tm)+"px":"0px"}}
   if(a<=0){cvB.style.display="none";return}
   cvB.style.display="block";cvB.style.opacity=a;
   const bh=cvB.getBoundingClientRect().height||100,pw=Math.round(W*dpr),ph=Math.round(bh*dpr);
