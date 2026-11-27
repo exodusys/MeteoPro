@@ -508,9 +508,9 @@ function quick(E){
 
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
- const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
+ const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";document.body.appendChild(cv3);
+ cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";document.body.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;document.body.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -616,7 +616,7 @@ const FX=(()=>{
   /* Safari mobile : la barre d'adresse qui se réduit/s'agrandit change innerHeight → on garde la hauteur maximale et on ignore ces variations (sinon tout est recalculé et étiré) */
   const w=innerWidth,tch=matchMedia("(pointer:coarse)").matches,h=tch?Math.max(innerHeight,Math.min(screen.height||0,innerHeight+260)):innerHeight;
   if(w==W&&(h==H||(tch&&Math.abs(h-H)<260)))return;
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;cv3.style.width=W+"px";cv3.style.height=H+"px";for(const c of[cv,cv2]){c.style.width=W+"px";c.style.height=H+"px"}
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;cv3.style.width=W+"px";cv3.style.height=H+"px";cv4.width=cv.width;cv4.height=cv.height;cv4.style.width=W+"px";cv4.style.height=H+"px";for(const c of[cv,cv2]){c.style.width=W+"px";c.style.height=H+"px"}
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
@@ -768,7 +768,7 @@ const FX=(()=>{
  }
  function rainI(){if(!WETC.includes(st.c))return 0;let I=Math.sqrt(Math.max(0,st.mm)/8);I=Math.min(1,Math.max(I,{rain:.1,shower:.18,storm:.55,sleet:.12}[st.c]));return st.c=="sleet"?I*.6:I}
  function snowI(){if(st.c=="snow")return Math.min(1,Math.max(Math.sqrt(Math.max(0,st.mm)/3),.12));return st.c=="sleet"?.4:0}
- function measureFloor(t){if(t-fmT<.1)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}if(r.top>24&&r.top<H){floorY=r.top+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
+ function measureFloor(t){if(t-fmT<.1)return;fmT=t;let r=null;for(const e of document.querySelectorAll("#v-today .card")){const b=e.getBoundingClientRect();if(b.height>0&&b.width>0){r=b;break}}if(!r){floorY=1e9;return}const pt=r.top+(window.scrollY||0);if(pt>24&&pt<H){floorY=pt+1;fx0=r.left-6;fx1=r.right+6}else floorY=1e9}
  const dotS=(()=>{const c=off(32,32),g=c.getContext("2d"),gr=g.createRadialGradient(16,16,0,16,16,16);gr.addColorStop(0,"rgba(236,243,252,1)");gr.addColorStop(.45,"rgba(226,236,250,.75)");gr.addColorStop(1,"rgba(226,236,250,0)");g.fillStyle=gr;g.fillRect(0,0,32,32);return c})();
  let splAcc=0;
  function drawSplash(dt,I){
@@ -923,21 +923,40 @@ const FX=(()=>{
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
   // soleil, lune, étoiles et nuages : canvas séparé, défilant nativement avec la page (aucun décalage → fluide) ; non dessiné une fois hors écran
   A=[];ctx=ctx3;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  if((window.scrollY||0)<H){drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon();drawClouds(dt,t)}
+  {drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon();drawClouds(dt,t)}
   ctx=ctx0;
-  measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}else{rain.length=0;spl.length=0}
-  if(sI>0)drawSnow(dt,t,sI);else snow.length=0;
+  // pluie, neige, grêle, éclairs : canvas séparé qui défile avec la page, comme le soleil et les nuages
+  ctx=ctx4;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  if(rI<=0){rain.length=0;spl.length=0}if(sI<=0)snow.length=0;
+  {measureFloor(t);if(rI>0){drawRain(dt,rI);drawSplash(dt,rI)}
+   if(sI>0)drawSnow(dt,t,sI);drawStorm(t)}
+  ctx=ctx0;
   drawFog(t,rI,sI);
-  drawStorm(t);
   drawCardFx(dt,t,rI,sI);
+  drawBand();
+ }
+
+ /* bande du haut : quand on descend, le soleil/la lune, les nuages et la pluie restent visibles dans une bande fixe sous le titre compact */
+ function drawBand(){
+  const sy=window.scrollY||0,a=Math.max(0,Math.min(1,(sy-70)/90));
+  if(a<=0){cvB.style.display="none";return}
+  cvB.style.display="block";cvB.style.opacity=a;
+  const bh=cvB.getBoundingClientRect().height||100,pw=Math.round(W*dpr),ph=Math.round(bh*dpr);
+  if(cvB.width!==pw||cvB.height!==ph){cvB.width=pw;cvB.height=ph}
+  const x=ctxB;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,pw,ph);
+  const sc=(typeof skyCur!=="undefined"&&skyCur)||[11,26,58,29,63,122],g=x.createLinearGradient(0,0,0,H*dpr);
+  g.addColorStop(0,"rgb("+Math.round(sc[0])+","+Math.round(sc[1])+","+Math.round(sc[2])+")");g.addColorStop(1,"rgb("+Math.round(sc[3])+","+Math.round(sc[4])+","+Math.round(sc[5])+")");
+  x.fillStyle=g;x.fillRect(0,0,pw,ph);
+  const as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-bh*.5)):140,Te=Math.min(sy,Tm)*dpr;
+  for(const c of[cv3,cv4])if(c.width)x.drawImage(c,0,Te,c.width,ph,0,0,pw,ph)
  }
  function loop(ts){if(!run)return;frame(ts);requestAnimationFrame(loop)}
  return{
   set(o){Object.assign(st,o);setup()},
-  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";cv3.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
+  start(){if(run||document.hidden)return;cv.style.display="block";cv2.style.display="block";cv3.style.display="block";cv4.style.display="block";resize();if(!T0)T0=performance.now();setup();run=true;last=performance.now();requestAnimationFrame(loop)},
   _acc(v){acc=v},fast(ms){fastUntil=performance.now()+ms},
   pause(){run=false},
-  stop(){run=false;cv.style.display="none";cv2.style.display="none";cv3.style.display="none"},
+  stop(){run=false;cv.style.display="none";cv2.style.display="none";cv3.style.display="none";cv4.style.display="none";cvB.style.display="none"},
   resize(){if(W||run){W=0;resize()}},
   astro(){return A},
   frameOnce(ts){if(!T0)T0=performance.now();resize();setup();frame(ts||performance.now())}
