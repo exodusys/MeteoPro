@@ -1058,7 +1058,7 @@ function skySet(a,c){
  else if(!skyTm)skyTm=setInterval(skyTick,200);
 }
 function updateSky(){
- if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;document.documentElement.classList.toggle("skytxt",!S.dyn);
+ if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;document.documentElement.classList.toggle("skytxt",!S.dyn&&!!SKYS&&SKYS.dk<.45&&!["rain","shower","storm","sleet"].includes(SKYS.c));   // fond fixe : texte noir seulement de jour et hors pluie ; blanc la nuit ou nuages sombres
  if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:.1),was=h_.classList.contains("daytxt");
  h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&["rain","shower","storm","sleet"].includes(SKYS.c));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
