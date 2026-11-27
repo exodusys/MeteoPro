@@ -607,7 +607,7 @@ const FX=(()=>{
   return{z,k:Math.random(),sc,i:(Math.random()*6)|0,x,y:H*R(-.03,.1+.36*cover)+z*H*.05,a:Math.min(1,(.4+.6*z)*(.4+cover*.8))*R(.8,1)};
  }
  const sm={r:0,s:0};let pI=0;
- function cover(){let c=st.cl/100;if(st.c=="pc")c=Math.min(1,c+.14);if(st.c=="fog")c=Math.max(c,.4);if(PRECIP.includes(st.c))c=Math.max(c,.5+.42*pI);return c}
+ function cover(){let c=st.cl/100;if(st.c=="pc")c=Math.min(1,c+.14+.16*Math.max(0,Math.min(1,(st.dk-.3)/.4)));if(st.c=="fog")c=Math.max(c,.4);if(PRECIP.includes(st.c))c=Math.max(c,.5+.42*pI);return c}
  function setup(){
   if(!W)return;
   const cv_=0;  const fk=st.dk>.6?"n":"d";if(fk!=fogKey){fogKey=fk;fogS=mkFog((fk=="n"?PAL.night[0]:PAL.fog[0]).join(","))}
