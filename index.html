@@ -3,8 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#0b1a3a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Météo Pro</title>
 <script>document.documentElement.dataset.theme="dark"</script>
@@ -19,7 +17,6 @@ html[data-theme=light]{--bg1:#8ec5f7;--bg2:#e4f1ff;--card:rgba(255,255,255,.55);
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden}
 html{background:var(--bg2)}
-#edgeTop{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);z-index:9999;pointer-events:none;background:var(--bg1)}
 #sky{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;pointer-events:none;background:linear-gradient(170deg,var(--bg1),var(--bg2))}
 body.nofade,body.nofade *{transition:none!important}
 body.sunny{--bg1:#1565c0;--bg2:#4fa3e0}
@@ -148,7 +145,7 @@ nav button.on{color:var(--txt)}nav button.on svg{stroke:var(--acc)}
 </style>
 </head>
 <body class="sunny nofade">
-<div id="sky"></div><div id="edgeTop"></div>
+<div id="sky"></div>
 <canvas id="fx"></canvas>
 <div id="cmp"><b id="cmpC"></b><span id="cmpT"></span></div>
 <div class="app">
@@ -1045,7 +1042,7 @@ function skyDefault(){const cs=getComputedStyle(document.documentElement);return
 function skyPaint(){
  const dk_=(document.documentElement.dataset.theme||"dark")!="light",lt=x=>dk_?x.map((v,i)=>Math.round(v+([86,140,214][i]-v)*.24)):x,   // thème sombre : fond de page un peu moins sombre
   a=lt(skyCur.slice(0,3)),c=lt(skyCur.slice(3));
- skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));{const e=document.getElementById("edgeTop");if(e)e.style.background=rgbs(a)}
+ skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
 }
 function skyTick(){
  const k=skyDur<=0?1:Math.min(1,(Date.now()-skyT0)/skyDur);
@@ -1061,7 +1058,7 @@ function skySet(a,c){
  else if(!skyTm)skyTm=setInterval(skyTick,200);
 }
 function updateSky(){
- if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;document.documentElement.classList.toggle("skytxt",!S.dyn);
+ if(lastDyn!==undefined&&lastDyn!==S.dyn)skyFast=true;lastDyn=S.dyn;document.documentElement.classList.toggle("skytxt",!S.dyn&&!!SKYS&&SKYS.cl>=30&&SKYS.dk<.45&&!["rain","shower","storm","sleet"].includes(SKYS.c));
  if(!SKYS)return;const b=document.body,h_=document.documentElement,day=!!S.dyn&&SKYS.dk<((document.documentElement.dataset.theme||"dark")=="light"?.45:.1),was=h_.classList.contains("daytxt");
  h_.classList.toggle("daytxt",day);h_.classList.toggle("cloudtxt",day&&["rain","shower","storm","sleet"].includes(SKYS.c));if(was!==day)setTimeout(()=>{try{drawChart()}catch(e){}},50);
  if(!S.dyn){const d=skyDefault();skySet(d[0],d[1]);return}
