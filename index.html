@@ -75,6 +75,7 @@ canvas{width:100%;display:block}
 #cmp{position:fixed;left:0;right:0;top:0;z-index:20;text-align:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 26px;pointer-events:none;opacity:0;visibility:hidden}
 #cmp::before{content:"";position:absolute;inset:0;background:linear-gradient(var(--edge,#0b1a3a) 58%,transparent);z-index:-1}
 #cmp.nb::before{display:none}
+#cmp.nb::after{content:"";position:absolute;left:50%;top:env(safe-area-inset-top);width:min(92%,430px);height:78px;transform:translateX(-50%);z-index:-1;background:radial-gradient(closest-side,color-mix(in srgb,var(--edge,#0b1a3a) 62%,transparent),color-mix(in srgb,var(--edge,#0b1a3a) 48%,transparent) 55%,transparent)}
 #cmp b{display:block;font-size:20px;font-weight:600;line-height:1.2}#cmp span{display:block;font-size:14px;font-weight:500;margin-top:2px;opacity:.92}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
 .fxon .hero{padding:34px 0 64px}.fxon .hero .ico{display:none}.fxon .hero .t,.fxon .hero .c,.fxon .hero .hl,.fxon .top .loc,.fxon .top .date{text-shadow:0 0 2px rgba(0,0,0,.28),0 1px 12px rgba(0,0,0,.4),0 0 30px rgba(0,0,0,.28)}.fxon .hero .hl{color:var(--txt);opacity:.92}.fxon .top .date{color:var(--txt);opacity:.85}
@@ -511,7 +512,7 @@ function quick(E){
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
  let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
- cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:absolute;left:0;top:0;width:100%;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
+ cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
  const st={c:"clear",n:false,dk:0,cl:0,wind:5,dir:270,mm:0,fog:0,sunF:null,moon:null,ph:0,tw:false,light:false};
@@ -938,10 +939,10 @@ const FX=(()=>{
  }
 
  /* bande du haut : quand on descend, le soleil/la lune, les nuages et la pluie restent visibles dans une bande fixe sous le titre compact */
- let skyT=0,skyFx=false;
+ let skyT=0;
  function drawBand(){
   const sy=window.scrollY||0,as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Tm,a=Math.max(0,Math.min(1,(sy-(Tm-24))/24));
-  {const f=sy>=Tm;if(f!==skyFx||(f&&Math.abs(Tm-skyT)>2)){skyFx=f;skyT=Tm;skyw.style.position=f?"fixed":"absolute";skyw.style.top=f?(-Tm)+"px":"0px"}}
+  if(Math.abs(Tm-skyT)>2){skyT=Tm;skyw.style.top=(-Tm)+"px"}
   if(a<=0){cvB.style.display="none";return}
   cvB.style.display="block";cvB.style.opacity=a;
   const bh=cvB.getBoundingClientRect().height||100,pw=Math.round(W*dpr),ph=Math.round(bh*dpr);
@@ -952,12 +953,6 @@ const FX=(()=>{
   x.fillStyle=g;x.fillRect(0,0,pw,ph);
   const Te=tY*dpr;
   for(const c of[cv3,cv4])if(c.width)x.drawImage(c,0,Te,c.width,ph,0,0,pw,ph)
-  const ce=document.getElementById("cmpC"),ct=document.getElementById("cmpT");
-  if(ce&&ce.textContent){const r1=ce.getBoundingClientRect(),r2=ct&&ct.style.display!=="none"?ct.getBoundingClientRect():r1,l=Math.min(r1.left,r2.left),rr=Math.max(r1.right,r2.right),tp=r1.top,bt=r2.bottom;
-   x.save();x.translate((l+rr)/2*dpr,(tp+bt)/2*dpr);x.scale(((rr-l)/2+30)*dpr,((bt-tp)/2+14)*dpr);
-   const q=x.createRadialGradient(0,0,0,0,0,1),c0="rgb("+Math.round(sc[0])+","+Math.round(sc[1])+","+Math.round(sc[2])+")";
-   q.addColorStop(0,c0.replace("rgb","rgba").replace(")",",.6)"));q.addColorStop(.55,c0.replace("rgb","rgba").replace(")",",.5)"));q.addColorStop(1,c0.replace("rgb","rgba").replace(")",",0)"));
-   x.fillStyle=q;x.fillRect(-1,-1,2,2);x.restore()}
  }
 
  /* estompe les animations derrière les textes (ville, date, température, condition, max/min) pour qu'ils ressortent */
