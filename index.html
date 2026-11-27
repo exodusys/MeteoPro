@@ -1045,7 +1045,7 @@ function skyDefault(){const cs=getComputedStyle(document.documentElement);return
 function skyPaint(){
  const dk_=(document.documentElement.dataset.theme||"dark")!="light",lt=x=>dk_?x.map((v,i)=>Math.round(v+([86,140,214][i]-v)*.24)):x,   // thème sombre : fond de page un peu moins sombre
   a=lt(skyCur.slice(0,3)),c=lt(skyCur.slice(3));
- skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));
+ skyEl.style.background="linear-gradient(170deg,"+rgbs(a)+","+rgbs(c)+")";document.documentElement.style.backgroundColor=rgbs(c);if(tcm)tcm.setAttribute("content",rgbs(a));{const e=document.getElementById("edgeTop");if(e)e.style.background=rgbs(a)}
 }
 function skyTick(){
  const k=skyDur<=0?1:Math.min(1,(Date.now()-skyT0)/skyDur);
