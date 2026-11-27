@@ -1461,22 +1461,26 @@ segs("chartSeg","chart",drawChart);segs("layerSeg","layer",setLayer);document.qu
 ["uT","uW","uP","uH"].forEach(id=>{document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v==S[id]));segs(id,id,()=>{render();drawRadar();drawCities()})});
 document.querySelectorAll(".sw").forEach(s=>{s.classList.toggle("on",!!S[s.dataset.s]);s.onclick=()=>{s.classList.toggle("on");S[s.dataset.s]=s.classList.contains("on");save();render()}});
 addEventListener("resize",()=>{drawChart();drawRadar();FX.resize()});
-/* couleur des textes du haut : s'adapte en direct à la luminosité de ce qu'il y a derrière (blanc → gris → noir) */
-(()=>{const T=[["hT"],["hC"],["hHL"]].map(a=>$(a[0])),P=document.querySelector("#v-today .top .loc"),D=document.querySelector("#v-today .top .date"),CM=$("cmpC"),CT=$("cmpT");
- const els=[...T,P,D,CM,CT].filter(Boolean),lv=new Map();els.forEach(e=>{e.style.transition="color .6s ease"});
- const lerp=(a,b,t)=>a+(b-a)*t,DK=[2,6,15];
+/* couleur des textes du haut : chaque lettre passe en blanc ou en noir selon la luminosité de ce qu'il y a derrière */
+(()=>{const q=s=>document.querySelector(s),EL=[$("hT"),$("hC"),$("hHL"),q("#v-today .top .loc"),$("cmpC"),$("cmpT")].filter(Boolean);
+ const lerp=(a,b,t)=>a+(b-a)*t,ST=new WeakMap(),WH="#fff",BK="#02060f";
+ function wrap(e){const tw=document.createTreeWalker(e,NodeFilter.SHOW_TEXT),L=[];let n;while(n=tw.nextNode())if(n.nodeValue)L.push(n);
+  for(const t of L){const f=document.createElement("span");f.className="cw";for(const ch of Array.from(t.nodeValue)){const sp=document.createElement("span");sp.className="ch";sp.textContent=ch;f.appendChild(sp)}t.parentNode.replaceChild(f,t)}}
+ function reset(){for(const e of EL)e.querySelectorAll(".ch").forEach(c=>{c.style.removeProperty("color");c.style.removeProperty("text-shadow")})}
  function tick(){const R=document.documentElement;
-  if(document.hidden||!(R.classList.contains("txb")||R.classList.contains("txw"))||!$("v-today").classList.contains("fxon")){els.forEach(e=>{e.style.removeProperty("color");e.style.removeProperty("text-shadow")});return}
-  const W=innerHeight||1;
-  for(const e of els){
-   const r=e.getBoundingClientRect();if(!r.width||!r.height)continue;
-   if(e.closest("#cmp")&&getComputedStyle($("cmp")).visibility==="hidden")continue;
-   const t=Math.max(0,Math.min(1,(r.top+r.height/2)/W)),sc=skyCur||[11,26,58,29,63,122],base=[0,1,2].map(i=>lerp(sc[i],sc[i+3],t));
-   let L=FX.lum(r,base);const o=lv.get(e);L=o==null?L:o+(L-o)*.5;lv.set(e,L);
-   const g=Math.max(0,Math.min(1,(L-.42)/.12)),c=[0,1,2].map(i=>Math.round(lerp(255,DK[i],g))),dark=g>.5;
-   e.style.setProperty("color","rgb("+c+")","important");
-   e.style.setProperty("text-shadow",dark?"0 0 1px rgba(255,255,255,.28)":"0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)","important")}}
- setInterval(tick,350);setTimeout(tick,1200);window.__adaptTick=tick})();
+  if(document.hidden||!(R.classList.contains("txb")||R.classList.contains("txw"))||!$("v-today").classList.contains("fxon")){reset();return}
+  const H=innerHeight||1,sc=skyCur||[11,26,58,29,63,122],cmpHidden=getComputedStyle($("cmp")).visibility==="hidden";
+  for(const e of EL){
+   if(e.closest("#cmp")&&cmpHidden)continue;
+   if(!e.querySelector(".ch"))wrap(e);
+   for(const c of e.querySelectorAll(".ch")){
+    if(c.textContent===" ")continue;
+    const r=c.getBoundingClientRect();if(!r.width||!r.height)continue;
+    const t=Math.max(0,Math.min(1,(r.top+r.height/2)/H)),base=[0,1,2].map(i=>lerp(sc[i],sc[i+3],t));
+    let L=FX.lum(r,base),o=ST.get(c);if(!o)o={L,b:L>.48};else{o.L+=(L-o.L)*.6;if(o.b&&o.L<.44)o.b=false;else if(!o.b&&o.L>.52)o.b=true}ST.set(c,o);
+    c.style.setProperty("color",o.b?BK:WH,"important");
+    c.style.setProperty("text-shadow",o.b?"0 0 1px rgba(255,255,255,.28)":"0 1px 3px rgba(0,0,0,.35),0 0 14px rgba(0,0,0,.18)","important")}}}
+ setInterval(tick,300);setTimeout(tick,1200);window.__adaptTick=tick})();
 /* le texte (température, condition, max/min) se décale vers le bas pour ne jamais recouvrir le soleil ni la lune */
 (()=>{const hero=document.querySelector("#v-today .hero"),els=["hT","hC","hHL"].map($);let shift=0;hero.style.transition="padding-top .7s ease";
  const tw=e=>{const r=document.createRange();r.selectNodeContents(e);const b=r.getBoundingClientRect();return[b.left,b.right]};
