@@ -605,7 +605,7 @@ const FX=(()=>{
  }
  function resize(){
   const w=innerWidth,h=innerHeight;if(w==W&&h==H)return;
-  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;
+  W=w;H=h;dpr=Math.min(devicePixelRatio||1,2);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv2.width=cv.width;cv2.height=cv.height;cv3.width=cv.width;cv3.height=cv.height;cv3.style.width=W+"px";cv3.style.height=H+"px";
   stars=[];const n=Math.round(150*(W*H)/(390*844));for(let i=0;i<n;i++)stars.push({x:R(0,W),y:R(0,H*.78),r:R(.3,1.5),p:R(0,PI2),s:R(.6,2.4),a:R(.4,1)});
   clouds=[];rain=[];snow=[];drops=[];spl=[];setup();
  }
