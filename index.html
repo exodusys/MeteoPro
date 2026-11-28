@@ -511,7 +511,7 @@ function quick(E){
 /* ================= ANIMATION MÉTÉO (canvas) ================= */
 const FX=(()=>{
  const cv=document.getElementById("fx"),ctx0=cv.getContext("2d"),cv3=document.createElement("canvas"),ctx3=cv3.getContext("2d"),cv4=document.createElement("canvas"),ctx4=cv4.getContext("2d"),cvB=document.createElement("canvas"),ctxB=cvB.getContext("2d"),cv2=document.createElement("canvas"),ctx2=cv2.getContext("2d");
- let ctx=ctx0,A=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
+ let ctx=ctx0,A=[],LATE=[];   // A : astres visibles [x,y,rayon] (soleil, lune), lus par l'interface pour écarter le texte
  cv3.style.cssText="position:absolute;left:0;top:0;width:100%;height:100vh;z-index:0;pointer-events:none;display:none;will-change:transform";const skyw=document.createElement("div");skyw.id="skyw";skyw.style.cssText="position:sticky;top:0;height:0;z-index:0;pointer-events:none";document.body.insertBefore(skyw,document.querySelector(".app"));skyw.appendChild(cv3);cv4.style.cssText=cv3.style.cssText;skyw.appendChild(cv4);cvB.style.cssText="position:fixed;left:0;top:0;width:100%;height:calc(env(safe-area-inset-top) + 100px);z-index:15;pointer-events:none;display:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)";document.body.appendChild(cvB);
  cv2.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none";document.body.appendChild(cv2);
  let W=0,H=0,dpr=1,run=false,last=0,T0=0,q=1,ema=.016,emaT=0;
@@ -641,6 +641,7 @@ const FX=(()=>{
   sunPos=[x,y];v*=1-.62*sunOcc;
   A.push([x,y,Math.min(27,W*.068)*2.1+10]);
   const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(244-72*warm),cb=Math.round(214-124*warm),col=`${cr},${cg},${cb}`;
+  LATE.push(()=>{
   /* 1. voile de lumière : le ciel proche du soleil est délavé, presque blanc */
   const R1=Math.max(W,H)*.58,g=ctx.createRadialGradient(x,y,0,x,y,R1);
   g.addColorStop(0,`rgba(255,255,255,${.7*v*sc})`);g.addColorStop(.1,`rgba(255,251,242,${.4*v*(1+(sc-1)*1.4)})`);g.addColorStop(.32,`rgba(${col},${.13*v})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -649,14 +650,6 @@ const FX=(()=>{
   if(ha>.02){const hr=W*.56,hg=ctx.createRadialGradient(x,y,hr*.8,x,y,hr*1.24);
    hg.addColorStop(0,"rgba(255,170,120,0)");hg.addColorStop(.2,`rgba(255,190,130,${.07*ha})`);hg.addColorStop(.42,`rgba(255,236,205,${.12*ha})`);hg.addColorStop(.62,`rgba(190,238,205,${.08*ha})`);hg.addColorStop(.82,`rgba(150,200,255,${.06*ha})`);hg.addColorStop(1,"rgba(150,200,255,0)");
    ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle=hg;ctx.fillRect(0,0,W,H);ctx.restore()}
-  /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
-  const rc=Math.min(27,W*.068);
-  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
-  /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
-  for(let q=0;q<8;q++){
-   const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
-   gr.addColorStop(0,`rgba(255,255,253,${v})`);gr.addColorStop(.5,`rgba(255,254,248,${.8*v})`);gr.addColorStop(1,"rgba(255,248,232,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
-  }
   /* 5. reflets d'objectif : disques pâles à bord légèrement plus clair, alignés du soleil vers le centre de l'écran, + une traînée bleutée */
   const gv=v*(1-ss_(.1,.55,st.cl/100))*(1-Math.min(1,st.dk*1.6));
   if(gv>.05){ctx.save();ctx.globalCompositeOperation="lighter";const cx=W*.5,cy=H*.52;
@@ -666,6 +659,15 @@ const FX=(()=>{
     ctx.fillStyle=gr;ctx.fillRect(px-r,py-r,r*2,r*2)});
    {const px=x+(cx-x)*.3,py=y+(cy-y)*.3;ctx.translate(px,py);ctx.scale(2.8,.65);const gr=ctx.createRadialGradient(0,0,0,0,0,20);gr.addColorStop(0,`rgba(170,205,255,${.16*gv})`);gr.addColorStop(1,"rgba(170,205,255,0)");ctx.fillStyle=gr;ctx.fillRect(-20,-20,40,40)}
    ctx.restore()}
+  });
+  /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
+  const rc=Math.min(27,W*.068);
+  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
+  /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
+  for(let q=0;q<8;q++){
+   const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
+   gr.addColorStop(0,`rgba(255,255,253,${v})`);gr.addColorStop(.5,`rgba(255,254,248,${.8*v})`);gr.addColorStop(1,"rgba(255,248,232,0)");ctx.fillStyle=gr;ctx.fillRect(px-rr,py-rr,rr*2,rr*2);
+  }
  }
  /* ---------- cirrus : fins filaments translucides, légère dérive ---------- */
  let cirT=null;
@@ -692,7 +694,7 @@ const FX=(()=>{
    for(let q=0;q<4;q++)ctx.drawImage(cirT[k],xo-w2*1.5+q*w2,-hh*sz/2,w2,hh*sz);ctx.restore()});
   ctx.restore();ctx.globalAlpha=1;
  }
- function drawMoon(){
+ function drawMoon(t){
   if(st.moon==null||st.dk<.2)return;
   const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.012)return;
   let v=(1-st.cl/100*.5)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c)||st.c=="fog")v*=.32;if(v<.03)return;
@@ -702,7 +704,7 @@ const FX=(()=>{
   if(!moonTx)moonTx=mkMoon();
   const key=Math.round(st.ph*500)+"|"+Math.round(m.ang*50);
   if(key!==moonKey||!moonSp){moonKey=key;moonSp=mkMoonSpr(moonTx,st.ph*PI2,m.ang,256)}
-  const g=ctx.createRadialGradient(x,y,r*.7,x,y,r*7);g.addColorStop(0,`rgba(196,210,255,${.34*v*(.25+.75*ill)})`);g.addColorStop(.35,`rgba(190,205,255,${.1*v*(.25+.75*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);
+  LATE.push(()=>{const g=ctx.createRadialGradient(x,y,r*.7,x,y,r*7);g.addColorStop(0,`rgba(196,210,255,${.34*v*(.25+.75*ill)})`);g.addColorStop(.35,`rgba(190,205,255,${.1*v*(.25+.75*ill)})`);g.addColorStop(1,"rgba(190,205,255,0)");ctx.fillStyle=g;ctx.fillRect(x-r*7,y-r*7,r*14,r*14);});
   ctx.save();ctx.translate(x,y);ctx.rotate(m.para);ctx.globalAlpha=v;ctx.imageSmoothingQuality="high";ctx.drawImage(moonSp,-r,-r,r*2,r*2);ctx.restore();ctx.globalAlpha=1;
  }
 
@@ -738,7 +740,7 @@ const FX=(()=>{
 
  /* petits nuages épars (états + sprites) */
  const puffs=[],puffCache={};let puffT=0,sunOcc=0,sunPos=null;
- function mkPuffState(init){const sc=.8+Math.random()*.45,w=Math.max(820,W*1.15)/512*190*sc;return{sc,x:init?Math.random()*W:0,y:H*(.04+Math.random()*.4),w,v:2+Math.random()*.7,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
+ function mkPuffState(init){const sc=.8+Math.random()*.45,w=Math.max(820,W*1.15)/512*190*sc;return{sc,x:init?Math.random()*W:0,y:H*(-.03+Math.random()*.43),w,v:1.6+Math.random()*.6,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
  function puffSp(key){
   if(puffCache.d===deck&&puffCache.k===key&&puffCache.s)return puffCache.s;
   const srcs=[deck[2],deck[1],deck[2],deck[1],deck[2],deck[1]],out=[],cw=190,ch=90,sm=off(19,9),sg=sm.getContext("2d",{willReadFrequently:true});let sd=4242;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
@@ -960,7 +962,7 @@ const FX=(()=>{
   const rI=sm.r,sI=sm.s;pI=Math.max(rI,sI);
   // soleil, lune, étoiles et nuages : canvas séparé, défilant nativement avec la page (aucun décalage → fluide) ; non dessiné une fois hors écran
   A=[];ctx=ctx3;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  {drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon();drawClouds(dt,t);dimText(ctx3,t,.5)}
+  {drawStars(t);drawSun(t);drawCirrus(dt,t);drawMoon(t);drawClouds(dt,t);dimText(ctx3,t,.5);for(const f of LATE)f();LATE.length=0}
   ctx=ctx0;
   // pluie, neige, grêle, éclairs : canvas séparé qui défile avec la page, comme le soleil et les nuages
   ctx=ctx4;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
