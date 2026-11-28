@@ -941,7 +941,7 @@ const FX=(()=>{
  /* bande du haut : quand on descend, le soleil/la lune, les nuages et la pluie restent visibles dans une bande fixe sous le titre compact */
  let skyT=0;
  function drawBand(){
-  const sy=window.scrollY||0,as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Tm,a=Math.max(0,Math.min(1,(sy-(Tm-24))/24));
+  const sy=window.scrollY||0,as=A&&A[0],Tm=as?Math.max(0,Math.min(300,as[1]-(cvB.getBoundingClientRect().height||100)*.5)):140,tY=Tm,a=Math.max(0,Math.min(1,(sy-Tm+3)/9));
   if(Math.abs(Tm-skyT)>2){skyT=Tm;skyw.style.top=(-Tm)+"px"}
   if(a<=0){cvB.style.display="none";return}
   cvB.style.display="block";cvB.style.opacity=a;
