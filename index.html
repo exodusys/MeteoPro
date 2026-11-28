@@ -662,7 +662,7 @@ const FX=(()=>{
   });
   /* 4. disque blanc éclatant, forme irrégulière qui scintille, bords flous */
   const rc=Math.min(27,W*.068);
-  const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);
+  LATE.push(()=>{const c2=ctx.createRadialGradient(x,y,0,x,y,rc*4.6);c2.addColorStop(0,`rgba(255,255,255,${.95*v})`);c2.addColorStop(.22,`rgba(255,252,240,${Math.min(.85,.7*v*sc)})`);c2.addColorStop(.55,`rgba(${col},${.22*v})`);c2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=c2;ctx.fillRect(x-rc*4.6,y-rc*4.6,rc*9.2,rc*9.2);});
   /* noyau : plusieurs taches blanches floues qui se déplacent légèrement → forme irrégulière et douce, qui scintille */
   for(let q=0;q<8;q++){
    const an=q*.785+Math.sin(q*3.1)*.5,dd=q?rc*.3:0,rr=rc*(q?.62:.95)*1.5,px=x+Math.cos(an)*dd,py=y+Math.sin(an)*dd,gr=ctx.createRadialGradient(px,py,0,px,py,rr);
