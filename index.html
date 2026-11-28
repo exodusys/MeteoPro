@@ -638,6 +638,7 @@ const FX=(()=>{
   if(st.sunF==null)return;
   const f=st.sunF,el=Math.sin(f*Math.PI),x=W*(.14+.72*f),y=H*(.20-.085*el);
   let v=1-st.cl/100*.5;if(PRECIP.includes(st.c)||st.c=="fog")v*=.32;if(v<.03)return;
+  sunPos=[x,y];v*=1-.62*sunOcc;
   A.push([x,y,Math.min(27,W*.068)*2.1+10]);
   const sc=1,warm=1-Math.pow(el,.5),cr=255,cg=Math.round(244-72*warm),cb=Math.round(214-124*warm),col=`${cr},${cg},${cb}`;
   /* 1. voile de lumière : le ciel proche du soleil est délavé, presque blanc */
@@ -736,7 +737,7 @@ const FX=(()=>{
  }
 
  /* petits nuages épars (états + sprites) */
- const puffs=[],puffCache={};let puffT=0;
+ const puffs=[],puffCache={};let puffT=0,sunOcc=0,sunPos=null;
  function mkPuffState(init){const sc=.8+Math.random()*.45,w=Math.max(820,W*1.15)/512*190*sc;return{sc,x:init?Math.random()*W:0,y:H*(.04+Math.random()*.4),w,v:2+Math.random()*.7,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
  function puffSp(key){
   if(puffCache.d===deck&&puffCache.k===key&&puffCache.s)return puffCache.s;
@@ -776,12 +777,15 @@ const FX=(()=>{
    puffT-=dt;
    if(puffT<=0){puffT=(2.5+Math.random()*6)*(1.35-.5*cv_);
     if(puffs.length<nP){const q=mkPuffState(false);q.x=dd>=0?-q.w*.6:W+q.w*.6;q.a=1;puffs.push(q)}}
+   let occT=0;const hh_=H*(.231+.14*cv_+.34*ss_(.6,1,cv_))*(W>600?.8:1)/170*90;
    for(let i=puffs.length-1;i>=0;i--){const q=puffs[i],w=q.w;
     q.x+=spd*q.v*dt;
+    if(sunPos){const ph=hh_*q.sc,dx=(sunPos[0]-q.x)/(w*.4),dy=(sunPos[1]-(q.y+ph*.5))/(ph*.5),d=Math.hypot(dx,dy),c=1-ss_(.3,1,d);occT+=c*q.o*1.15}
     if(dd>=0?q.x>W+w:q.x<-w){puffs.splice(i,1);continue}
     ctx.globalAlpha=Math.min(1,q.o*vis*pb);ctx.drawImage(sp[q.k%6],q.x-w/2,q.y,w,H*(.231+.14*cv_+.34*ss_(.6,1,cv_))*(W>600?.8:1)/170*90*q.sc)}
+   sunOcc+=(Math.min(1,occT)-sunOcc)*Math.min(1,dt*2.2);
    ctx.globalAlpha=1;
-  }
+  }else sunOcc*=.9;
   if(vis>.01&&cv_>.7){const vp=PAL[key][1],ov=ss_(.7,1,cv_)*.34*vis*(1-Math.min(1,st.dk*.6));const g=ctx.createLinearGradient(0,0,0,H*.8);g.addColorStop(0,`rgba(${vp},${ov})`);g.addColorStop(.7,`rgba(${vp},${ov*.55})`);g.addColorStop(1,`rgba(${vp},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
   const dim=cv_*(st.c=="storm"?.3+.3*pI:WETC.includes(st.c)?.14+.28*pI:st.c=="snow"?(st.light?.05+.12*pI:.14+.24*pI):st.c=="cloud"?.1:0);
   if(dim>.01){const g=ctx.createLinearGradient(0,0,0,H*.75);g.addColorStop(0,`rgba(12,17,28,${dim})`);g.addColorStop(1,"rgba(12,17,28,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
