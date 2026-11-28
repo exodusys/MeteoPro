@@ -734,6 +734,25 @@ const FX=(()=>{
   for(let y=0;y<h;y++){const v=y/h,f=Math.pow(1-v,1.7)*Math.min(1,v*14);for(let x=0;x<w;x++){const u=(x-w/2)/(w/2),a=Math.exp(-u*u*3.2)*f,o=(y*w+x)*4;im.data[o]=235;im.data[o+1]=242;im.data[o+2]=252;im.data[o+3]=a*255}}
   g.putImageData(im,0,0);return c;
  }
+
+ /* petits nuages épars (états + sprites) */
+ const puffs=[],puffCache={};
+ function mkPuffState(init){const w=Math.max(70,W*(.2+Math.random()*.22));return{x:init?Math.random()*W:0,y:H*(.04+Math.random()*.4),w,v:1.4+Math.random()*.5,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
+ function puffSp(key){
+  if(puffCache.k===key&&puffCache.s)return puffCache.s;
+  const srcs=[mkDeck(1,PAL[key],.8),mkDeck(2,PAL[key],.8)];
+  const out=[],cw=170,ch=80,sm=off(17,8),sg=sm.getContext("2d",{willReadFrequently:true});let sd=4242;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let k=0;k<6;k++){
+   const src=srcs[k%2];let best=null,bd=9;
+   for(let tr=0;tr<10;tr++){const sx=Math.floor(R()*(512-cw)),sy=Math.floor(R()*(170-ch));sg.clearRect(0,0,17,8);sg.drawImage(src,sx,sy,cw,ch,0,0,17,8);
+    const d=sg.getImageData(0,0,17,8).data;let m=0;for(let q=3;q<d.length;q+=4)m+=d[q];m/=(136*255);const sc=Math.abs(m-.55);if(sc<bd){bd=sc;best=[sx,sy]}}
+   const c=off(240,113),g=c.getContext("2d");g.drawImage(src,best[0],best[1],cw,ch,0,0,240,113);
+   g.globalCompositeOperation="destination-in";g.save();g.translate(120,56);g.scale(1,.47);
+   const gr=g.createRadialGradient(0,0,0,0,0,120);gr.addColorStop(0,"rgba(0,0,0,1)");gr.addColorStop(.55,"rgba(0,0,0,.9)");gr.addColorStop(1,"rgba(0,0,0,0)");g.fillStyle=gr;g.fillRect(-120,-120,240,240);g.restore();
+   out.push(c);
+  }
+  puffCache.k=key;puffCache.s=out;return out;
+ }
  function drawClouds(dt,t){
   const dd=driftDir(),wsp=1+Math.min(st.wind,70)*.05,cv_=cover(),key=palKey(),pb=PRECIP.includes(st.c)?.8+.2*pI:1;
   const cvT=Math.min(.95,Math.max(.2,cv_)),tier=Math.abs(cvT-deckCv)>.17||deckCv<0?cvT:deckCv;
@@ -749,6 +768,19 @@ const FX=(()=>{
      draw=(img,al)=>{if(al<=.005)return;ctx.globalAlpha=Math.min(1,al*L.a*vis*pb*(1+.25*ss_(.7,1,cv_)));ctx.drawImage(img,xo-ww,y,ww,hh);ctx.drawImage(img,xo,y,ww,hh);ctx.drawImage(img,xo+ww,y,ww,hh)};
     if(deckOld){draw(deckOld[l],1-deckT);draw(deck[l],deckT)}else draw(deck[l],1);
    }
+   ctx.globalAlpha=1;
+  }
+  /* petits nuages épars devant la couche de fond : un peu plus rapides que les nuages de derrière */
+  if(vis>.01){
+   const nP=Math.round(3+6*ss_(.35,1,cv_));
+   while(puffs.length<nP)puffs.push(mkPuffState(true));
+   while(puffs.length>nP&&puffs[puffs.length-1].a<=.02)puffs.pop();
+   const spd=13*wsp*.6*dd,sp=puffSp(key);
+   for(let i=0;i<puffs.length;i++){const q=puffs[i];
+    q.x+=spd*q.v*dt;const w=q.w;
+    if(dd>=0?q.x>W+w:q.x<-w){Object.assign(q,mkPuffState(false));q.x=dd>=0?-q.w:W+q.w}
+    const keep=i<nP;q.a+=((keep?1:0)-q.a)*Math.min(1,dt*.8);if(q.a<.01)continue;
+    ctx.globalAlpha=Math.min(1,q.a*q.o*vis*pb);ctx.drawImage(sp[q.k%6],q.x-w/2,q.y,w,w*.47)}
    ctx.globalAlpha=1;
   }
   if(vis>.01&&cv_>.7){const vp=PAL[key][1],ov=ss_(.7,1,cv_)*.34*vis*(1-Math.min(1,st.dk*.6));const g=ctx.createLinearGradient(0,0,0,H*.8);g.addColorStop(0,`rgba(${vp},${ov})`);g.addColorStop(.7,`rgba(${vp},${ov*.55})`);g.addColorStop(1,`rgba(${vp},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
