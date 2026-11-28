@@ -699,7 +699,7 @@ const FX=(()=>{
   const ill=(1-Math.cos(st.ph*PI2))/2;if(ill<.012)return;
   let v=(1-st.cl/100*.5)*Math.max(0,Math.min(1,(st.dk-.3)/.35));if(PRECIP.includes(st.c)||st.c=="fog")v*=.32;if(v<.03)return;
   const m=st.moon;let an=m.az;if(m.south){an=an>0?an-Math.PI:an+Math.PI}
-  const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.30-.175*Math.min(1,m.alt/(1.22))),r=Math.min(32,W*.08);
+  const x=W*Math.max(.1,Math.min(.9,.5+(m.south?an:an)*.21)),y=H*(.20-.085*Math.max(0,Math.min(1,m.alt/1.22))),r=Math.min(32,W*.08);
   A.push([x,y,r*1.5+8]);
   if(!moonTx)moonTx=mkMoon();
   const key=Math.round(st.ph*500)+"|"+Math.round(m.ang*50);
