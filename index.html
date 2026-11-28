@@ -736,8 +736,8 @@ const FX=(()=>{
  }
 
  /* petits nuages épars (états + sprites) */
- const puffs=[],puffCache={};
- function mkPuffState(init){const sc=.8+Math.random()*.45,w=Math.max(820,W*1.15)/512*190*sc;return{sc,x:init?Math.random()*W:0,y:H*(.04+Math.random()*.4),w,v:2.7+Math.random()*.9,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
+ const puffs=[],puffCache={};let puffT=0;
+ function mkPuffState(init){const sc=.8+Math.random()*.45,w=Math.max(820,W*1.15)/512*190*sc;return{sc,x:init?Math.random()*W:0,y:H*(.04+Math.random()*.4),w,v:2+Math.random()*.7,o:.55+Math.random()*.3,k:Math.floor(Math.random()*6),a:init?1:0}}
  function puffSp(key){
   if(puffCache.d===deck&&puffCache.k===key&&puffCache.s)return puffCache.s;
   const srcs=[deck[2],deck[1],deck[2],deck[1],deck[2],deck[1]],out=[],cw=190,ch=90,sm=off(19,9),sg=sm.getContext("2d",{willReadFrequently:true});let sd=4242;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
@@ -771,15 +771,15 @@ const FX=(()=>{
   }
   /* petits nuages épars devant la couche de fond : un peu plus rapides que les nuages de derrière */
   if(vis>.01){
-   const nP=Math.round(3+6*ss_(.35,1,cv_));
-   while(puffs.length<nP)puffs.push(mkPuffState(true));
-   while(puffs.length>nP&&puffs[puffs.length-1].a<=.02)puffs.pop();
-   const spd=13*wsp*.6*dd,sp=puffSp(key);
-   for(let i=0;i<puffs.length;i++){const q=puffs[i];
-    q.x+=spd*q.v*dt;const w=q.w;
-    if(dd>=0?q.x>W+w:q.x<-w){Object.assign(q,mkPuffState(false));q.x=dd>=0?-q.w:W+q.w}
-    const keep=i<nP;q.a+=((keep?1:0)-q.a)*Math.min(1,dt*.8);if(q.a<.01)continue;
-    ctx.globalAlpha=Math.min(1,q.a*q.o*vis*pb);ctx.drawImage(sp[q.k%6],q.x-w/2,q.y,w,H*(.231+.14*cv_+.34*ss_(.6,1,cv_))*(W>600?.8:1)/170*90*q.sc)}
+   const nP=Math.round(3+6*ss_(.35,1,cv_)),spd=13*wsp*.6*dd,sp=puffSp(key);
+   /* apparition aléatoire : un nouveau petit nuage entre de temps en temps par le côté d'où vient le vent */
+   puffT-=dt;
+   if(puffT<=0){puffT=(2.5+Math.random()*6)*(1.35-.5*cv_);
+    if(puffs.length<nP){const q=mkPuffState(false);q.x=dd>=0?-q.w*.6:W+q.w*.6;q.a=1;puffs.push(q)}}
+   for(let i=puffs.length-1;i>=0;i--){const q=puffs[i],w=q.w;
+    q.x+=spd*q.v*dt;
+    if(dd>=0?q.x>W+w:q.x<-w){puffs.splice(i,1);continue}
+    ctx.globalAlpha=Math.min(1,q.o*vis*pb);ctx.drawImage(sp[q.k%6],q.x-w/2,q.y,w,H*(.231+.14*cv_+.34*ss_(.6,1,cv_))*(W>600?.8:1)/170*90*q.sc)}
    ctx.globalAlpha=1;
   }
   if(vis>.01&&cv_>.7){const vp=PAL[key][1],ov=ss_(.7,1,cv_)*.34*vis*(1-Math.min(1,st.dk*.6));const g=ctx.createLinearGradient(0,0,0,H*.8);g.addColorStop(0,`rgba(${vp},${ov})`);g.addColorStop(.7,`rgba(${vp},${ov*.55})`);g.addColorStop(1,`rgba(${vp},0)`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
